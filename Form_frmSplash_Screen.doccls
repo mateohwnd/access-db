@@ -1,0 +1,13 @@
+﻿Option Compare Database
+
+Private Sub Command15_Click()
+
+End Sub
+
+Private Sub Command19_Click()
+
+End Sub
+
+Private Sub btn_menu_ext_Click()
+DoCmd.OpenForm "frmMainMenu"
+End Sub

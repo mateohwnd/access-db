@@ -1,0 +1,72 @@
+﻿Option Compare Database
+Option Explicit
+
+Private Sub cbohelpertype_AfterUpdate()
+    Me.Requery
+End Sub
+ 
+Private Sub Form_AfterUpdate()
+'    If IsOpen("frmClientTrn") Then
+'        Forms![frmClientTrn].cboClientCode.Requery
+'    End If
+'    If IsOpen("frmTrnDetails") Then
+'        Forms![frmTrnDetails].cboTrn.Requery
+'    End If
+'    Forms![frminsurance].cboCType.Requery
+'    Forms![frminsurance].cboClientCode.Requery
+'    Forms![frminsurance].cboEncCode.Requery
+End Sub
+
+Private Sub Form_Close()
+    If IsOpen("frmClientTrn") Then
+        Forms![frmClientTrn].cboClientCode.Requery
+    End If
+    If IsOpen("frmTrn") Then
+        Forms!frmTrn!frmTrnDetails.Form!cboTrn.Requery
+    End If
+    If IsOpen("frmTrnDetails") Then
+        Forms![frmTrnDetails].cboTrn.Requery
+    End If
+    If IsOpen("frmData") Then
+        Forms![frmData].cboClientCode.Requery
+    End If
+    If IsOpen("frmcashflowdata") Then
+        Forms![frmcashflowdata].cboCategory.Requery
+    End If
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+    Form.InsideHeight = 3000
+    Form.InsideWidth = 4180
+    
+    Me.txtDataTypeID.DefaultValue = TempVars!tmpDataTypeID
+    Me.txtDataTypeDesc = DLookup("data_type_description", "tblhelperdatatype", "data_type_id =" & TempVars!tmpDataTypeID)
+    DoCmd.GoToRecord , , acNewRec
+End Sub
+
+Private Sub txtData_KeyPress(KeyAscii As Integer)
+    Select Case KeyAscii
+        ' KeyAscii reference https://thecodeforyou.blogspot.com/2013/01/vb-keyascii-values.html
+        Case 48 To 57
+        ' numeric character, do nothing
+        Case 65 To 90
+        ' allow uppercase letters A-Z
+        Case 97 To 122
+        ' allow lowercase letters a-z
+        Case 8
+        ' - character
+        Case 45
+        ' backspace, do nothing
+        Case Else
+        ' suppress character entered
+        KeyAscii = 0
+    End Select
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub

@@ -1,0 +1,20 @@
+﻿Option Compare Database
+
+
+Private Sub Report_Load()
+Dim a As Integer
+a = Forms!frmTrn.txtDeposit
+a = Nz(a)
+'MsgBox a
+    If a = 0 Then
+        Me.txtDpst.Visible = False
+        Me.txtTotal.Visible = False
+        Me.lnTotal.Visible = False
+        Me.txtDeposit.Visible = False
+    Else
+        Me.txtDpst.Visible = True
+        Me.txtTotal.Visible = True
+        Me.lnTotal.Visible = True
+        Me.txtDeposit.Visible = True
+    End If
+End Sub

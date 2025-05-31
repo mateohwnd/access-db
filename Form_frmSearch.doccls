@@ -1,0 +1,48 @@
+﻿Option Compare Database
+
+Private Sub cmdPREVIEW_Click()
+On Error GoTo Err_cmdPREVIEW_Click
+
+    Dim stDocName As String
+
+    stDocName = "DATA_INPUT_BY_DATE"
+    DoCmd.OpenReport stDocName, acPreview
+
+Exit_cmdPREVIEW_Click:
+    Exit Sub
+
+Err_cmdPREVIEW_Click:
+    MsgBox Err.Description
+    Resume Exit_cmdPREVIEW_Click
+    
+End Sub
+Private Sub cmdPRINT_Click()
+On Error GoTo Err_cmdPRINT_Click
+
+    Dim stDocName As String
+
+    stDocName = "STUDENTLIST_PERCOURSE"
+    DoCmd.OpenReport stDocName, acNormal
+
+Exit_cmdPRINT_Click:
+    Exit Sub
+
+Err_cmdPRINT_Click:
+    MsgBox Err.Description
+    Resume Exit_cmdPRINT_Click
+    
+End Sub
+Private Sub cmdCANCEL_Click()
+On Error GoTo Err_cmdCANCEL_Click
+
+
+    DoCmd.Close
+
+Exit_cmdCANCEL_Click:
+    Exit Sub
+
+Err_cmdCANCEL_Click:
+    MsgBox Err.Description
+    Resume Exit_cmdCANCEL_Click
+    
+End Sub

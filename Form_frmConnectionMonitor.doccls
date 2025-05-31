@@ -1,0 +1,124 @@
+﻿Option Compare Database
+
+Private Sub Form_Timer()
+    Dim pingResult As Long
+    
+    ' Set lblPing to "Connecting..." and color it orange
+    Forms!frmStart.lblPing.Caption = "Connecting..."
+    Forms!frmStart.lblPing.ForeColor = RGB(255, 165, 0) ' Orange color
+    
+    ' Debugging output to check the result of PingMySQLWithXMLHTTP
+    pingResult = PingMySQLWithXMLHTTP()
+    
+    ' Debugging output to check the result of PingMySQLWithXMLHTTP
+    Debug.Print "PingMySQLWithXMLHTTP result: " & pingResult
+    
+    If pingResult = -1 Then
+        ' Connection failed, show a failure message and update lblPing
+        Debug.Print "Connection failed. Updating lblPing..."
+        
+        ' Update lblPing to indicate failure
+        Forms!frmStart.lblPing.Caption = "Connection Failed"
+        Forms!frmStart.lblPing.ForeColor = RGB(255, 0, 0) ' Red color
+        
+        ' Show a message box with options
+        Dim response As Integer
+        response = MsgBox("MySQL server is not reachable. Do you want to try reconnecting?", vbRetryCancel + vbCritical, "Connection Failed")
+        
+        ' Check the user's response
+        If response = vbRetry Then
+            ' Retry the connection
+            Debug.Print "User chose to retry."
+            Me.TimerInterval = 5000 ' Retry every 5 seconds
+        Else
+            ' User chose Cancel or Exit, close the app or perform exit action
+            Debug.Print "User chose to exit."
+            DoCmd.Quit ' Exit the application
+        End If
+    Else
+        ' Update the label with successful ping result
+        Debug.Print "Updating lblPing with value: Ping: " & pingResult & " ms"
+        Forms!frmStart.lblPing.Caption = "Ping: " & pingResult & " ms"
+        
+        ' Color the label based on the ping result
+        If pingResult <= 50 Then
+            ' Fast ping - Dark Green
+            Forms!frmStart.lblPing.ForeColor = RGB(0, 128, 0) ' Dark Green
+        ElseIf pingResult <= 150 Then
+            ' Moderate ping - Yellow
+            Forms!frmStart.lblPing.ForeColor = RGB(255, 255, 0) ' Yellow
+        Else
+            ' High latency - Red
+            Forms!frmStart.lblPing.ForeColor = RGB(255, 0, 0) ' Red
+        End If
+    End If
+    
+    ' Allow UI to update by processing other events
+    DoEvents
+End Sub
+
+Function PingMySQLWithXMLHTTP() As Long
+    On Error GoTo ErrorHandler
+    
+    Dim objXML As Object
+    Dim host As String
+    Dim port As String
+    Dim url As String
+    Dim startTime As Double
+    Dim endTime As Double
+    Dim pingDuration As Long
+    Dim config As Object
+    Dim configPath As String
+    
+    ' Path to the configuration file
+    configPath = CurrentProject.path & "\config.txt"
+    
+    ' Read the configuration file
+    Set config = ReadConfig(configPath)
+    
+    ' Retrieve the host and port from the config dictionary
+    If config.Exists("SERVER") Then
+        host = config("SERVER")
+    Else
+        Debug.Print "Error: SERVER not found in config."
+        PingMySQLWithXMLHTTP = -1
+        Exit Function
+    End If
+    
+    ' MySQL default port (you can configure this if needed)
+    port = "3306"
+    
+    ' Create the XMLHTTP object
+    Set objXML = CreateObject("MSXML2.XMLHTTP")
+    
+    ' Construct the URL for checking the server
+    url = "http://" & host & ":" & port
+    
+    ' Start time for ping measurement
+    startTime = Timer
+    
+    ' Attempt HTTP request (this won't open a terminal window)
+    objXML.Open "GET", url, False
+    objXML.Send
+    
+    ' End time for ping measurement
+    endTime = Timer
+    
+    ' If status is 200 (OK), the server is reachable
+    If objXML.Status = 200 Then
+        ' Calculate the response time in milliseconds
+        pingDuration = (endTime - startTime) * 1000
+        PingMySQLWithXMLHTTP = pingDuration
+    Else
+        ' Connection failed
+        PingMySQLWithXMLHTTP = -1
+    End If
+    
+    Exit Function
+
+ErrorHandler:
+    ' Handle errors (e.g., timeout, server unreachable)
+    Debug.Print "Error occurred: " & Err.Description
+    PingMySQLWithXMLHTTP = -1
+End Function
+

@@ -1,0 +1,24 @@
+﻿Option Compare Database
+Option Explicit
+
+Private Sub btnDelete_Click()
+    If MsgBox("Are you sure you want to delete this record?", vbYesNo + vbQuestion, "Confirm Delete") = vbYes Then
+        DoCmd.SetWarnings False
+        DoCmd.RunSQL "DELETE FROM masterlist WHERE MVID = " & Me.MVID
+        DoCmd.SetWarnings True
+        Me.Requery ' Refresh the form to reflect the deleted record
+    End If
+End Sub
+
+Private Sub btnEdit_Click()
+
+    DoCmd.OpenForm "frmData", , , "MVID=" & MVID, acFormEdit, , "EditRecord"
+    
+    Forms![frmData].AllowAdditions = False
+            
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+    Form.InsideHeight = 3000
+    Form.InsideWidth = 9200
+End Sub

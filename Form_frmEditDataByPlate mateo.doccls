@@ -1,0 +1,53 @@
+﻿Option Compare Database
+
+Private Sub cboAmount_AfterUpdate()
+   Me.txtAmtWords = Me![cboAmount].Column(2)
+End Sub
+
+Private Sub cmdExit_Click()
+On Error GoTo Err_cmdEXIT_Click
+
+
+    DoCmd.Close
+
+Exit_cmdEXIT_Click:
+    Exit Sub
+
+Err_cmdEXIT_Click:
+    MsgBox Err.Description
+    Resume Exit_cmdEXIT_Click
+    
+End Sub
+
+
+
+
+Private Sub Command59_Click()
+'        ' DoCmd.OpenReport "rptmateo", acViewPreview, , "[PLATN]" & Me.Textbox_PlateNumber
+'        ' DoCmd.OpenReport "rptmateo", acViewPreview, , "[PLATN] = " & [PLATN]
+'        DoCmd.OpenReport "rptmateo", acViewPreview, , "[MVID] = " & Me.Text60
+End Sub
+
+Private Sub Form_BeforeUpdate(Cancel As Integer)
+   Dim strMsg As String
+   Dim iResponse As Integer
+   
+   Me![DateModified].value = Now()
+
+   ' Specify the message to display.
+   strMsg = "Do you wish to save the changes?" & Chr(10)
+   strMsg = strMsg & "Click Yes to Save or No to Discard changes."
+
+   ' Display the message box.
+   iResponse = MsgBox(strMsg, vbQuestion + vbYesNo, "Save Record?")
+   
+   ' Check the user's response.
+   If iResponse = vbNo Then
+       ' Undo the change.
+       DoCmd.RunCommand acCmdUndo
+
+       ' Cancel the update.
+       Cancel = True
+   End If
+End Sub
+

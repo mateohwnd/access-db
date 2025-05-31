@@ -1,0 +1,10 @@
+﻿Option Compare Database
+
+Private Sub Form_Timer()
+
+'On the forms timer event close the start-up form
+    DoCmd.Close acForm, "frmStartUp"
+'Open up the main switchboard form when the start-up form closes
+    DoCmd.OpenForm "frmLogon"
+    
+End Sub

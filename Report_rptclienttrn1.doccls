@@ -1,0 +1,75 @@
+﻿Option Compare Database
+
+Private Sub Report_Load()
+    Call Unpaid
+    Call paid
+
+'i = DCount("coctype", "qryClientTrn1", "[coctype] = 'mc' and [paid] = 'unpaid'")
+'Me.tCall EntriesxtPaid = i
+    
+
+'Dim ctl As Control
+'
+'For Each ctl In Me
+'    If TypeOf ctl Is TextBox Then
+'    'Or TypeOf ctl Is ComboBox
+'        If ctl = "0" And ctl.Tag = "1" Then
+'            ctl.Visible = False
+'        End If
+'    End If
+'Next
+'
+'If txtTruck = 0 And txtTrailer > 0 Then
+'    txtTrailer.Top = 0
+'    lblTrailer.Top = 0
+'End If
+'
+'If txtMC = 0 And txtPC > 0 Then
+'    txtPC.Top = 0
+'    lblPC.Top = 0
+'End If
+
+End Sub
+
+
+Private Sub Unpaid()
+    Dim i As Integer
+    
+    i = DCount("coctype", "qryClientTrn1", "[paid] = 'unpaid'")
+    If i > 0 Then Me.txtUnpaid1 = "Unpaid"
+    
+    i = DCount("coctype", "qryClientTrn1", "[coctype] = 'mc' and [paid] = 'unpaid'")
+    If i > 0 Then msg = "MC = " & i & vbCrLf
+
+    i = DCount("coctype", "qryClientTrn1", "[coctype] = 'pc' and [paid] = 'unpaid'")
+    If i > 0 Then msg = msg & "PC = " & i & vbCrLf
+
+    i = DCount("coctype", "qryClientTrn1", "[coctype] = 'truck' and [paid] = 'unpaid'")
+    If i > 0 Then msg = msg & "TRUCK = " & i & vbCrLf
+
+    i = DCount("coctype", "qryClientTrn1", "[coctype] = 'trailer' and [paid] = 'unpaid'")
+    If i > 0 Then msg = msg & "TRAILER = " & i & vbCrLf
+
+    Me.txtUnpaid = msg
+End Sub
+
+Private Sub paid()
+    Dim i As Integer
+    
+    i = DCount("coctype", "qryClientTrn1", "[paid] = 'paid'")
+    If i > 0 Then Me.txtPaid1 = "Paid"
+        
+    i = DCount("coctype", "qryClientTrn1", "[coctype] = 'mc' and [paid] = 'paid'")
+    If i > 0 Then msg = msg & "MC = " & i & vbCrLf
+
+    i = DCount("coctype", "qryClientTrn1", "[coctype] = 'pc' and [paid] = 'paid'")
+    If i > 0 Then msg = msg & "PC = " & i & vbCrLf
+
+    i = DCount("coctype", "qryClientTrn1", "[coctype] = 'truck' and [paid] = 'paid'")
+    If i > 0 Then msg = msg & "TRUCK = " & i & vbCrLf
+
+    i = DCount("coctype", "qryClientTrn1", "[coctype] = 'trailer' and [paid] = 'paid'")
+    If i > 0 Then msg = msg & "TRAILER = " & i & vbCrLf
+
+    Me.txtPaid = msg
+End Sub

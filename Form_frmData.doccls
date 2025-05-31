@@ -1,0 +1,1159 @@
+﻿Option Compare Database
+
+Private Sub Form_BeforeInsert(Cancel As Integer)
+    Me.txtEncoderInitials = GetEncoderCode
+End Sub
+
+Private Sub btnFill_Click()
+    On Error GoTo Err_Handler
+
+    Me.txtDateIssued.value = Date
+    Me.txtStartDate.value = Date
+    Me.txtEndDate.value = DateAdd("yyyy", 1, Date)
+
+    Call BackColor
+    Exit Sub
+
+Err_Handler:
+    Call mdlErrorHandling.HandleError("btnFill_Click", "Could not auto-fill date fields.")
+End Sub
+
+Private Sub txtPremiumAmount_AfterUpdate()
+   Me.txtAmountInWords = modCurrencyToWords.ConvertCurrencyToEnglish(Me.txtPremiumAmount)
+End Sub
+
+Private Sub cboClientCode_Click()
+    Me.cboClientCode.Dropdown
+End Sub
+
+Private Sub cboClientCode_DblClick(Cancel As Integer)
+    TempVars!tmpDataTypeID = 5
+    DoCmd.OpenForm "frmhelperdataadd"
+End Sub
+
+Private Sub cboClientCode_KeyPress(KeyAscii As Integer)
+    Select Case KeyAscii
+        ' KeyAscii reference https://thecodeforyou.blogspot.com/2013/01/vb-keyascii-values.html
+        Case 48 To 57
+        ' numeric character, do nothing
+        Case 65 To 90
+        ' allow uppercase letters A-Z
+        Case 97 To 122
+        ' allow lowercase letters a-z
+        Case 8
+        ' - character
+        Case 45
+        ' backspace, do nothing
+        Case Else
+        ' suppress character entered
+        KeyAscii = 0
+    End Select
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub cboClientCode_NotInList(NewData As String, response As Integer)
+    Me.cboClientCode = ""
+End Sub
+
+Private Sub cboCOCType_KeyPress(KeyAscii As Integer)
+
+On Error GoTo Err_Handler
+
+    Select Case KeyAscii
+        Case Else
+        'suppress character entered
+        KeyAscii = 0
+        Me.cboCOCType.Dropdown
+    End Select
+
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "cboCOCType_KeyPress"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub cmdExit_Click()
+    On Error GoTo Err_Handler
+
+    If OpenArgs = "NewRecord" Then
+        Call SaveNewRecord
+    ElseIf OpenArgs = "EditRecord" Then
+        Call UpdateExistingRecord
+    End If
+
+    DoCmd.Close
+    Exit Sub
+
+Err_Handler:
+    Call mdlErrorHandling.HandleError("frmData.cmdExit_Click", "Failed to save and close.")
+End Sub
+
+Private Sub cboMakeModel_KeyPress(KeyAscii As Integer)
+    Select Case KeyAscii
+        ' KeyAscii reference https://thecodeforyou.blogspot.com/2013/01/vb-keyascii-values.html
+        Case 32 ' space
+        Case 48 To 57
+        ' numeric character, do nothing
+        Case 65 To 90
+        ' allow uppercase letters A-Z
+        Case 97 To 122
+        ' allow lowercase letters a-z
+        Case 8
+        ' - character
+        Case 45
+        ' backspace, do nothing
+        Case Else
+        ' suppress character entered
+        KeyAscii = 0
+    End Select
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub cboBodyType_KeyPress(KeyAscii As Integer)
+
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+  
+End Sub
+
+Private Sub txtChassisNumber_KeyPress(KeyAscii As Integer)
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+  
+End Sub
+
+Private Sub txtEngineNumber_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+  
+End Sub
+
+Private Sub txtColor_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub txtCocNumber_Click()
+ Me.txtCocNumber.SelStart = 0
+ Me.txtCocNumber.SelLength = Nz(Len(Me.txtCocNumber), 0)
+End Sub
+
+Private Sub txtCocNumber_KeyPress(KeyAscii As Integer)
+    Select Case KeyAscii
+        ' KeyAscii reference https://thecodeforyou.blogspot.com/2013/01/vb-keyascii-values.html
+        Case 48 To 57
+        ' numeric character, do nothing
+        Case 65 To 90
+        ' allow uppercase letters A-Z
+        Case 97 To 122
+        ' allow lowercase letters a-z
+        Case 8
+        ' - character
+        Case 45
+        ' backspace, do nothing
+        Case Else
+        ' suppress character entered
+        KeyAscii = 0
+    End Select
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub txtOwnerAddress_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub txtOwnerName_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub txtMvFileNumber_AfterUpdate()
+
+    If DCount("*", "masterlist", "bltfn='" & Trim(txtMvFileNumber.value) & "'") > 0 Then
+        MsgBox "MV File Number:" & vbCrLf & vbCrLf & txtMvFileNumber.value & vbCrLf & vbCrLf & "Already existed!", vbInformation, "Notice"
+    End If
+
+End Sub
+
+Private Sub txtMvFileNumber_KeyPress(KeyAscii As Integer)
+
+    Select Case KeyAscii
+        ' KeyAscii reference https://thecodeforyou.blogspot.com/2013/01/vb-keyascii-values.html
+        Case 48 To 57
+        ' numeric character, do nothing
+        Case 65 To 90
+        ' allow uppercase letters A-Z
+        Case 97 To 122
+        ' allow lowercase letters a-z
+        Case 8
+        ' - character
+        Case 45
+        ' backspace, do nothing
+        Case Else
+        ' suppress character entered
+        KeyAscii = 0
+    End Select
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+
+End Sub
+
+Private Sub txtPlateNumber_KeyPress(KeyAscii As Integer)
+    Select Case KeyAscii
+        ' KeyAscii reference https://thecodeforyou.blogspot.com/2013/01/vb-keyascii-values.html
+        Case 48 To 57
+        ' numeric character, do nothing
+        Case 65 To 90
+        ' allow uppercase letters A-Z
+        Case 97 To 122
+        ' allow lowercase letters a-z
+        Case 8
+        ' - character
+        Case 45
+        ' backspace, do nothing
+        Case Else
+        ' suppress character entered
+        KeyAscii = 0
+    End Select
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub Form_Close()
+    If IsOpen("frmContinuous") Then
+        Forms![frmContinuous].Requery
+    End If
+    If IsOpen("frmmainmenu") Then
+        Forms![frmMainMenu].DisplayMvInfo
+        Forms![frmMainMenu].lstSearch.Requery
+    End If
+End Sub
+
+Private Sub Form_Load()
+    On Error GoTo Err_Handler
+
+    Dim searchValue As String
+
+    Select Case OpenArgs
+        Case "NewRecord"
+            ClearFormFields
+
+        Case "EditRecord"
+            ' Load record via ADO using value from txtInputBox in calling form
+            searchValue = Forms("frmMainMenu").txtInputBox ' Adjust this as needed
+            If Not IsNull(searchValue) Then
+                Call LoadRecordFromDB(searchValue)
+            End If
+
+        Case Else
+            '
+    End Select
+    
+    Me.lblFormMode.Caption = GetFormMode()
+    
+    ' load values to combo boxes from cache
+    If IsArray(g_MakeModels) Then
+        Me.cboMakeModel.RowSourceType = "Value List"
+        Me.cboMakeModel.RowSource = Join(g_MakeModels, ";")
+    Else
+        MsgBox "MakeModel cache not loaded!", vbExclamation
+    End If
+    
+    If IsArray(g_BodyTypes) Then
+        Me.cboBodyType.RowSourceType = "Value List"
+        Me.cboBodyType.RowSource = Join(g_BodyTypes, ";")
+    Else
+        MsgBox "BodyTypes cache not loaded!", vbExclamation
+    End If
+       
+Exit Sub
+
+Err_Handler:
+    mdlErrorHandling.HandleError "frmData.Form_Load", "Unable to initialize form."
+End Sub
+  
+Private Sub UpdateExistingRecord()
+    On Error GoTo Err_Handler
+
+    Dim sql As String
+    Dim setClauses As String ' To build the dynamic SET part
+    Dim commaNeeded As Boolean ' Flag to manage commas between SET clauses
+    Dim formValue As Variant
+    Dim originalValue As Variant
+
+    ' Ensure a record was loaded before attempting to update
+    If Not g_IsRecordLoaded Then
+        MsgBox "No record loaded to update. Please load a record first.", vbExclamation
+        Exit Sub
+    End If
+    If g_currentPlateN = "" Then ' Double-check plate number is valid
+        MsgBox "Cannot update: Original Plate Number is missing.", vbExclamation
+        Exit Sub
+    End If
+
+    ' --- Compare and build SET clauses for each field ---
+    ' For each field, fetch current form value and original cached value.
+    ' Then use AreValuesDifferent to decide if it needs to be included in the UPDATE.
+
+    ' BLTFN (varchar)
+    formValue = Me.txtMvFileNumber.value
+    originalValue = g_originalValues("bltfn") ' Use the exact DB field name (lowercase if that's how it's stored in dictionary)
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "BLTFN", formValue, "varchar", commaNeeded)
+    End If
+
+    ' SERCHAN (varchar)
+    formValue = Me.txtChassisNumber.value
+    originalValue = g_originalValues("serchan")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "SERCHAN", formValue, "varchar", commaNeeded)
+    End If
+
+    ' MOTN (varchar)
+    formValue = Me.txtEngineNumber.value
+    originalValue = g_originalValues("motn")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "MOTN", formValue, "varchar", commaNeeded)
+    End If
+
+    ' MOD (varchar) - remember backticks in SQL field name!
+    formValue = Me.txtYearModel.value
+    originalValue = g_originalValues("mod")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "`MOD`", formValue, "varchar", commaNeeded) ' Use backticks for SQL
+    End If
+
+    ' MAK (varchar)
+    formValue = Me.cboMakeModel.value
+    originalValue = g_originalValues("mak")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "MAK", formValue, "varchar", commaNeeded)
+    End If
+
+    ' TOB (varchar)
+    formValue = Me.cboBodyType.value
+    originalValue = g_originalValues("tob")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "TOB", formValue, "varchar", commaNeeded)
+    End If
+
+    ' COL (varchar)
+    formValue = Me.txtColor.value
+    originalValue = g_originalValues("col")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "COL", formValue, "varchar", commaNeeded)
+    End If
+
+    ' AUTHCAP (varchar)
+    formValue = Me.txtCapacity.value
+    originalValue = g_originalValues("authcap")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "AUTHCAP", formValue, "varchar", commaNeeded)
+    End If
+
+    ' UNLWEI (varchar)
+    formValue = Me.txtUnladenWeight.value
+    originalValue = g_originalValues("unlwei")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "UNLWEI", formValue, "varchar", commaNeeded)
+    End If
+
+    ' AmtNW (varchar)
+    formValue = Me.txtAmountInWords.value
+    originalValue = g_originalValues("amtnw")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "AmtNW", formValue, "varchar", commaNeeded)
+    End If
+
+    ' PREM (double)
+    formValue = Me.txtPremiumAmount.value
+    originalValue = g_originalValues("prem")
+    If AreValuesDifferent(formValue, originalValue, "double") Then
+        setClauses = AddSetClause(setClauses, "PREM", formValue, "double", commaNeeded)
+    End If
+
+    ' NAM (varchar)
+    formValue = Me.txtOwnerName.value
+    originalValue = g_originalValues("nam")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "NAM", formValue, "varchar", commaNeeded)
+    End If
+
+    ' ADDR (varchar)
+    formValue = Me.txtOwnerAddress.value
+    originalValue = g_originalValues("addr")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "ADDR", formValue, "varchar", commaNeeded)
+    End If
+
+    ' CONTACT (varchar)
+    formValue = Me.txtContactNumber.value
+    originalValue = g_originalValues("contact")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "CONTACT", formValue, "varchar", commaNeeded)
+    End If
+
+    ' COCN (varchar)
+    formValue = Me.txtCocNumber.value
+    originalValue = g_originalValues("cocn")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "COCN", formValue, "varchar", commaNeeded)
+    End If
+
+    ' DATIS (date)
+    formValue = Me.txtDateIssued.value
+    originalValue = g_originalValues("datis")
+    If AreValuesDifferent(formValue, originalValue, "date") Then
+        setClauses = AddSetClause(setClauses, "DATIS", formValue, "date", commaNeeded)
+    End If
+
+    ' POIF (date)
+    formValue = Me.txtStartDate.value
+    originalValue = g_originalValues("poif")
+    If AreValuesDifferent(formValue, originalValue, "date") Then
+        setClauses = AddSetClause(setClauses, "POIF", formValue, "date", commaNeeded)
+    End If
+
+    ' POIT (date)
+    formValue = Me.txtEndDate.value
+    originalValue = g_originalValues("poit")
+    If AreValuesDifferent(formValue, originalValue, "date") Then
+        setClauses = AddSetClause(setClauses, "POIT", formValue, "date", commaNeeded)
+    End If
+
+    ' POLN (varchar)
+    formValue = Me.cboClientCode.value
+    originalValue = g_originalValues("poln")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "POLN", formValue, "varchar", commaNeeded)
+    End If
+
+    ' ICN (varchar)
+    formValue = Me.txtEncoderInitials.value
+    originalValue = g_originalValues("icn")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "ICN", formValue, "varchar", commaNeeded)
+    End If
+
+    ' paid (varchar) - NOT NULL, DEFAULT 'unpaid'
+    formValue = Me.txtPaid.value
+    originalValue = g_originalValues("paid")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        ' For 'paid' field, if empty, we send '' as per Nz and Replace, which is fine for VARCHAR NOT NULL
+        setClauses = AddSetClause(setClauses, "paid", formValue, "varchar", commaNeeded)
+    End If
+
+    ' COCTYPE (varchar)
+    formValue = Me.cboCOCType.value
+    originalValue = g_originalValues("coctype")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "COCTYPE", formValue, "varchar", commaNeeded)
+    End If
+
+    ' BUSPRO (varchar)
+    formValue = Me.txtBusinessProfession.value
+    originalValue = g_originalValues("buspro")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "BUSPRO", formValue, "varchar", commaNeeded)
+    End If
+
+    ' ORN (varchar)
+    formValue = Me.txtOrNumber.value
+    originalValue = g_originalValues("orn")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "ORN", formValue, "varchar", commaNeeded)
+    End If
+
+    ' STAT (varchar)
+    formValue = Me.txtMemo.value
+    originalValue = g_originalValues("stat")
+    If AreValuesDifferent(formValue, originalValue, "varchar") Then
+        setClauses = AddSetClause(setClauses, "STAT", formValue, "varchar", commaNeeded)
+    End If
+
+    ' --- Check if any fields were actually changed ---
+    If setClauses = "" Then
+        MsgBox "No changes detected. Record not updated.", vbInformation
+        Exit Sub
+    End If
+
+    ' --- Construct final SQL ---
+    sql = "UPDATE masterlist SET " & setClauses & " WHERE PLATN = '" & Replace(g_currentPlateN, "'", "''") & "'"
+
+    Call mdlConnection.OpenDBConnection
+    ' Debug.Print "SQL Executing (Smart Update): " & sql
+    g_conn.Execute sql
+
+    MsgBox "Record updated successfully!", vbInformation
+    Exit Sub
+
+Err_Handler:
+    Call mdlErrorHandling.HandleError("UpdateExistingRecord", "Could not update record.", sql)
+End Sub
+
+Public Sub SafeAssign(controlName As String, rs As ADODB.Recordset, fieldName As String)
+    On Error GoTo Err_Handler
+    
+    If rs.fields.count = 0 Then Exit Sub
+    If rs.BOF And rs.EOF Then Exit Sub
+    
+    If Not rs.fields(fieldName) Is Nothing Then
+        Dim ctrl As Control
+        Set ctrl = Forms(Me.Name).Controls(controlName)
+        
+        With ctrl
+            Dim wasEnabled As Boolean, wasLocked As Boolean
+            wasEnabled = .Enabled
+            wasLocked = .Locked
+            
+            ' Temporarily unlock if needed
+            If Not wasEnabled Or wasLocked Then
+                .Enabled = True
+                .Locked = False
+            End If
+            
+            .value = rs.fields(fieldName).value
+            
+            ' Restore original state
+            .Locked = wasLocked
+            .Enabled = wasEnabled
+        End With
+    End If
+
+    Exit Sub
+Err_Handler:
+    ' Optionally log this error
+    ' Call mdlErrorHandling.HandleError "SafeAssign", "Failed to assign control value.", fieldName
+End Sub
+
+Private Sub SaveNewRecord()
+    On Error GoTo Err_Handler
+
+    Dim sqlColumns As String
+    Dim sqlValues As String
+    Dim fldName As String
+    Dim fldValue As Variant
+    Dim newGuid As String
+    Dim lineNumValue As Long ' Variable for LineNumber
+    Dim rsCheck As ADODB.Recordset ' For uniqueness check
+    Dim checkSql As String ' For uniqueness check SQL
+
+    ' --- 1. Basic Validation (existing and new) ---
+    If Trim(Me.txtPlateNumber.value) = "" Then
+        MsgBox "Plate Number cannot be empty.", vbExclamation, "Validation Error"
+        Me.txtPlateNumber.SetFocus
+        Exit Sub
+    End If
+
+    ' Get the MV File Number value from the form
+    Dim mvFileNumberValue As String
+    mvFileNumberValue = Trim(Me.txtMvFileNumber.value)
+
+    If mvFileNumberValue = "" Then
+        MsgBox "MV File Number cannot be empty.", vbExclamation, "Validation Error"
+        Me.txtMvFileNumber.SetFocus
+        Exit Sub
+    End If
+
+    ' --- 2. Open DB Connection ---
+    Call mdlConnection.OpenDBConnection
+
+    ' --- 3. MV File Number Uniqueness Validation ---
+    checkSql = "SELECT COUNT(*) FROM masterlist WHERE BLTFN = '" & Replace(mvFileNumberValue, "'", "''") & "'"
+    
+    Set rsCheck = New ADODB.Recordset
+    rsCheck.Open checkSql, g_conn, adOpenForwardOnly, adLockReadOnly
+
+    If Not rsCheck.EOF Then
+        If rsCheck.fields(0).value > 0 Then
+            MsgBox "The MV File Number '" & mvFileNumberValue & "' already exists in the database. Please enter a unique value.", vbExclamation, "Duplicate MV File Number"
+            rsCheck.Close
+            Set rsCheck = Nothing
+            Me.txtMvFileNumber.SetFocus
+            Exit Sub ' Exit the sub if duplicate found
+        End If
+    End If
+    rsCheck.Close
+    Set rsCheck = Nothing ' Clean up the recordset
+
+    ' --- 4. Generate a new GUID ---
+    newGuid = GenerateGuid() ' Call the API function (ensure GenerateGuid is in a standard module)
+    If newGuid = "" Then
+        MsgBox "Failed to generate a unique ID. Cannot save record.", vbCritical
+        Exit Sub
+    End If
+
+    ' --- 5. Determine LineNumber Value ---
+    ' Assuming LineNumber is not auto-increment and you want to insert '0'
+    lineNumValue = 0
+
+    ' --- 6. Build SQL INSERT Statement ---
+    sqlColumns = ""
+    sqlValues = ""
+
+    ' Guid (Required field)
+    sqlColumns = "Guid"
+    sqlValues = "'" & newGuid & "'"
+
+    ' LineNumber (Required field if not auto-incremented)
+    sqlColumns = sqlColumns & ", LineNumber"
+    sqlValues = sqlValues & ", " & lineNumValue
+
+    ' Plate Number (assuming it's mandatory and unique)
+    fldName = "PLATN"
+    fldValue = Me.txtPlateNumber.value
+    sqlColumns = sqlColumns & ", " & fldName
+    sqlValues = sqlValues & ", '" & Replace(fldValue, "'", "''") & "'"
+
+    ' MV File Number (BLTFN) - now validated
+    fldName = "BLTFN"
+    fldValue = mvFileNumberValue ' Use the validated value
+    sqlColumns = sqlColumns & ", " & fldName
+    sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+
+    ' --- Continue with all your other fields as before ---
+    ' Make sure you've uncommented and added all your other fields here
+    ' Example:
+    fldName = "SERCHAN"
+    fldValue = Me.txtChassisNumber.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+    
+    ' Example for MOTN (text field)
+    fldName = "MOTN"
+    fldValue = Me.txtEngineNumber.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for MOD (Year Model - text field based on previous output)
+    fldName = "`MOD`" ' MOD is a reserved word, always quote it
+    fldValue = Me.txtYearModel.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for COL (text field)
+    fldName = "COL"
+    fldValue = Me.txtColor.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for AmtNW (text field)
+    fldName = "AmtNW"
+    fldValue = Me.txtAmountInWords.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for PREM (Numeric - Double/Currency)
+    fldName = "PREM"
+    fldValue = Me.txtPremiumAmount.value
+    If IsNumeric(fldValue) Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", " & CDbl(fldValue) ' No quotes for numbers
+    ElseIf IsNull(fldValue) Or Trim(Nz(fldValue, "")) = "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", NULL" ' Insert NULL if empty
+    End If
+
+    ' Example for NAM (text field)
+    fldName = "NAM"
+    fldValue = Me.txtOwnerName.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for ADDR (text field)
+    fldName = "ADDR"
+    fldValue = Me.txtOwnerAddress.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for CONTACT (text field)
+    fldName = "CONTACT"
+    fldValue = Me.txtContactNumber.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for COCN (text field)
+    fldName = "COCN"
+    fldValue = Me.txtCocNumber.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for DATIS (Date field)
+    fldName = "DATIS"
+    fldValue = Me.txtDateIssued.value
+    If IsDate(fldValue) Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Format(fldValue, "yyyy-mm-dd") & "'"
+    ElseIf IsNull(fldValue) Or Trim(Nz(fldValue, "")) = "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", NULL"
+    End If
+
+    ' Example for POIF (Date field)
+    fldName = "POIF"
+    fldValue = Me.txtStartDate.value
+    If IsDate(fldValue) Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Format(fldValue, "yyyy-mm-dd") & "'"
+    ElseIf IsNull(fldValue) Or Trim(Nz(fldValue, "")) = "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", NULL"
+    End If
+
+    ' Example for POIT (Date field)
+    fldName = "POIT"
+    fldValue = Me.txtEndDate.value
+    If IsDate(fldValue) Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Format(fldValue, "yyyy-mm-dd") & "'"
+    ElseIf IsNull(fldValue) Or Trim(Nz(fldValue, "")) = "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", NULL"
+    End If
+
+    ' Example for POLN (text field)
+    fldName = "POLN"
+    fldValue = Me.cboClientCode.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for ICN (text field)
+    fldName = "ICN"
+    fldValue = Me.txtEncoderInitials.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for paid (text field)
+    fldName = "paid"
+    fldValue = Me.txtPaid.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for COCTYPE (text field)
+    fldName = "COCTYPE"
+    fldValue = Me.cboCOCType.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' Example for STAT (text field)
+    fldName = "STAT"
+    fldValue = Me.txtMemo.value
+    If Not IsNull(fldValue) And Trim(fldValue) <> "" Then
+        sqlColumns = sqlColumns & ", " & fldName
+        sqlValues = sqlValues & ", '" & Replace(Trim(fldValue), "'", "''") & "'"
+    End If
+
+    ' DATADD and datemodified
+    sqlColumns = sqlColumns & ", DATADD, datemodified"
+    sqlValues = sqlValues & ", NOW(), NOW()"
+
+
+    ' Final SQL construction
+    Dim sql As String ' Declare sql here to be local to this sub
+    sql = "INSERT INTO masterlist (" & sqlColumns & ") VALUES (" & sqlValues & ")"
+
+    Debug.Print "SQL Executing (New Record): " & sql
+
+    ' --- 7. Execute the SQL ---
+    g_conn.Execute sql
+
+    MsgBox "New record saved successfully!", vbInformation
+
+    ' --- 8. Optional: Load the newly saved record or clear the form ---
+    ClearFormFields ' Assuming you have a sub to clear all form fields
+
+Exit Sub
+
+Err_Handler:
+    ' Check if rsCheck was opened before the error
+    If Not rsCheck Is Nothing Then
+        If rsCheck.State = adStateOpen Then rsCheck.Close
+        Set rsCheck = Nothing
+    End If
+    Call mdlErrorHandling.HandleError("SaveNewRecord", "Could not insert new record.", sql)
+End Sub
+
+Private Sub ClearFormFields()
+    Me.txtPlateNumber = Null
+    Me.txtMvFileNumber = Null
+    Me.txtCocNumber = Null
+    
+End Sub
+
+Public Function GetFormMode() As String
+    If Me.NewRecord Then
+        GetFormMode = "Add Mode"
+    Else
+        GetFormMode = "Edit Mode"
+    End If
+End Function
+
+Private Sub BackColor()
+    On Error GoTo Err_Handler
+
+    HighlightIfNull Me.cboCOCType
+    HighlightIfNull Me.cboClientCode
+    HighlightIfNull Me.txtEncoderInitials
+    HighlightIfNull Me.txtPremiumAmount
+
+    Dim datDateIssued As Variant, datStartDate As Variant, datEndDate As Variant
+    datDateIssued = Nz(Me.txtDateIssued.value, Null)
+    datStartDate = Nz(Me.txtStartDate.value, Null)
+    datEndDate = Nz(Me.txtEndDate.value, Null)
+
+    If IsNull(datDateIssued) Or IsNull(datStartDate) Or IsNull(datEndDate) Then
+        If IsNull(datDateIssued) Then Me.txtDateIssued.BackColor = vbOrange
+        If IsNull(datStartDate) Then Me.txtStartDate.BackColor = vbOrange
+        If IsNull(datEndDate) Then Me.txtEndDate.BackColor = vbOrange
+    Else
+        ' Validate and color each date
+        Me.txtDateIssued.BackColor = IIf(Year(datDateIssued) = Year(Date), vbGreen, vbRed)
+        Me.txtStartDate.BackColor = IIf(Year(datStartDate) = Year(Date), vbGreen, vbRed)
+        Me.txtEndDate.BackColor = IIf(Year(datEndDate) >= Year(Date) And Year(datStartDate) = Year(Date), vbGreen, vbRed)
+    End If
+
+    Exit Sub
+Err_Handler:
+    Call mdlErrorHandling.HandleError("BackColor", "Error in date highlighting.")
+End Sub
+
+Private Sub HighlightIfNull(ctrl As Control)
+    If IsNull(ctrl.value) Then
+        ctrl.BackColor = vbOrange
+    Else
+        ctrl.BackColor = vbWhite
+    End If
+End Sub
+
+Private Sub LoadRecordFromDB(searchValue As String)
+    On Error GoTo Err_Handler
+
+    Dim rs As ADODB.Recordset
+    Dim sql As String
+    Dim fld As ADODB.field
+    
+    ' This check is good defensively, but UserForm_Initialize should now set it globally
+    If g_originalValues Is Nothing Then
+        Set g_originalValues = CreateObject("Scripting.Dictionary")
+        ' Debug.Print "LoadRecordFromDB: g_originalValues was Nothing, re-initialized."
+    End If
+
+    Call mdlConnection.OpenDBConnection ' Assume this sets g_conn correctly
+
+    searchValue = Replace(searchValue, "'", "''") ' Escape input
+
+    sql = "SELECT * FROM masterlist WHERE " & _
+              "PLATN = '" & searchValue & "' OR " & _
+              "BLTFN = '" & searchValue & "' OR " & _
+              "COCN = '" & searchValue & "'"
+
+    Set rs = New ADODB.Recordset
+    rs.Open sql, g_conn, adOpenForwardOnly, adLockReadOnly
+
+    ' Clear previous cached values
+    g_originalValues.RemoveAll ' <-- This clears it, so it should be empty here before re-populating
+    ' Debug.Print "LoadRecordFromDB: Dictionary cleared. Current Count: " & g_originalValues.count
+    g_IsRecordLoaded = False
+    g_currentPlateN = "" ' Reset plate number cache
+
+    If Not rs.EOF Then
+        ' Debug.Print "LoadRecordFromDB: Record found. Populating dictionary."
+
+        ' Cache original values from the recordset
+        For Each fld In rs.fields
+            ' Check the value of fld.Value immediately before adding
+            ' Debug.Print "  Processing Field: " & fld.Name & _
+                        " | fld.Value: '" & fld.value & "'" & _
+                        " (TypeName: " & typeName(fld.value) & ")"
+
+            If Not g_originalValues.Exists(fld.Name) Then ' Prevent adding duplicate keys
+                g_originalValues.Add fld.Name, fld.value
+                ' Debug.Print "  Dictionary Added: Key='" & fld.Name & _
+                            "', Value Stored: '" & g_originalValues(fld.Name) & "'" & _
+                            " (TypeName in Dict: " & typeName(g_originalValues(fld.Name)) & ")"
+            Else
+                 ' This branch should ideally not be hit for a simple SELECT * from a single record
+                 ' Debug.Print "  Dictionary Warning: Key '" & fld.Name & "' already exists. Value: '" & g_originalValues(fld.Name) & "'"
+            End If
+        Next fld
+
+        ' After loop, check dictionary count
+        ' Debug.Print "LoadRecordFromDB: Dictionary population complete. Final Count: " & g_originalValues.count
+
+        g_IsRecordLoaded = True
+        g_currentPlateN = Nz(rs!PLATN, "") ' Cache the plate number for the WHERE clause.
+
+        ' Map recordset fields to form controls (YOUR EXISTING CODE)
+        SafeAssign "txtPlateNumber", rs, "PLATN"
+        SafeAssign "txtMvFileNumber", rs, "BLTFN"
+        SafeAssign "txtChassisNumber", rs, "SERCHAN"
+        SafeAssign "txtEngineNumber", rs, "MOTN"
+        SafeAssign "txtYearModel", rs, "MOD"
+        SafeAssign "cboMakeModel", rs, "MAK"
+        SafeAssign "cboBodyType", rs, "TOB"
+        SafeAssign "txtColor", rs, "COL"
+        SafeAssign "txtCapacity", rs, "AUTHCAP"
+        SafeAssign "txtUnladenWeight", rs, "UNLWEI"
+        SafeAssign "txtAmountInWords", rs, "AmtNW"
+        SafeAssign "txtPremiumAmount", rs, "PREM"
+        SafeAssign "txtOwnerName", rs, "NAM"
+        SafeAssign "txtOwnerAddress", rs, "ADDR"
+        SafeAssign "txtContactNumber", rs, "CONTACT"
+        SafeAssign "txtCocNumber", rs, "COCN"
+        SafeAssign "txtDateIssued", rs, "DATIS"
+        SafeAssign "txtStartDate", rs, "POIF"
+        SafeAssign "txtEndDate", rs, "POIT"
+        SafeAssign "cboClientCode", rs, "POLN"
+        SafeAssign "txtEncoderInitials", rs, "ICN"
+        SafeAssign "txtPaid", rs, "paid"
+        SafeAssign "cboCOCType", rs, "COCTYPE"
+        SafeAssign "txtBusinessProfession", rs, "BUSPRO"
+        SafeAssign "txtOrNumber", rs, "ORN"
+        SafeAssign "txtMemo", rs, "STAT"
+        SafeAssign "txtCreatedAt", rs, "DATADD"
+        SafeAssign "txtUpdatedAt", rs, "datemodified"
+
+        rs.Close
+    Else
+        ' Debug.Print "LoadRecordFromDB: Record not found for search value: " & searchValue
+        MsgBox "Record not found.", vbInformation
+    End If
+
+    Set rs = Nothing
+    Exit Sub
+
+Err_Handler:
+    Call mdlErrorHandling.HandleError("LoadRecordFromDB", "Could not load the record.", sql)
+End Sub
+
+' Helper function to compare values smartly
+Private Function AreValuesDifferent(ByVal formValue As Variant, ByVal originalValue As Variant, ByVal fieldType As String) As Boolean
+    ' Compares two values considering Nulls and data types
+    Dim normalizedForm As Variant
+    Dim normalizedOriginal As Variant
+
+    Select Case LCase(fieldType)
+        Case "string", "varchar"
+            ' Treat Null and empty string as equivalent for comparison
+            normalizedForm = Trim(Nz(formValue, ""))
+            normalizedOriginal = Trim(Nz(originalValue, ""))
+
+            If (StrComp(normalizedForm, normalizedOriginal, vbTextCompare) <> 0) Then
+                ' Debug.Print "DIFFERENCE DETECTED (String/Varchar): " & _
+                            " Form Value: '" & normalizedForm & "' (Type: " & typeName(formValue) & ")" & _
+                            " Original Value: '" & normalizedOriginal & "' (Type: " & typeName(originalValue) & ")"
+                AreValuesDifferent = True
+            Else
+                AreValuesDifferent = False
+            End If
+
+        Case "date"
+            Dim dForm As Variant
+            Dim dOriginal As Variant
+
+            If IsNull(formValue) Or Not IsDate(formValue) Then
+                dForm = Null
+            Else
+                dForm = CDate(formValue)
+            End If
+
+            If IsNull(originalValue) Or Not IsDate(originalValue) Then
+                dOriginal = Null
+            Else
+                dOriginal = CDate(originalValue)
+            End If
+
+            If IsNull(dForm) And IsNull(dOriginal) Then
+                AreValuesDifferent = False
+            ElseIf IsNull(dForm) Xor IsNull(dOriginal) Then
+                ' Debug.Print "DIFFERENCE DETECTED (Date - Null state): " & _
+                            " Form Value (Normalized): " & IIf(IsNull(dForm), "NULL", Format(dForm, "yyyy-mm-dd")) & _
+                            " Original Value (Normalized): " & IIf(IsNull(dOriginal), "NULL", Format(dOriginal, "yyyy-mm-dd"))
+                AreValuesDifferent = True
+            ElseIf (dForm <> dOriginal) Then
+                ' Debug.Print "DIFFERENCE DETECTED (Date - value): " & _
+                            " Form Value: " & Format(dForm, "yyyy-mm-dd") & _
+                            " Original Value: " & Format(dOriginal, "yyyy-mm-dd")
+                AreValuesDifferent = True
+            Else
+                AreValuesDifferent = False
+            End If
+
+        Case "double", "long", "int", "numeric"
+            Dim nForm As Double
+            Dim nOriginal As Double
+
+            If IsNumeric(formValue) Then
+                nForm = CDbl(formValue)
+            Else
+                nForm = 0 ' Or handle as you prefer for non-numeric empty
+            End If
+
+            If IsNumeric(originalValue) Then
+                nOriginal = CDbl(originalValue)
+            Else
+                nOriginal = 0
+            End If
+
+            If (nForm <> nOriginal) Then
+                ' Debug.Print "DIFFERENCE DETECTED (Numeric): " & _
+                            " Form Value: " & nForm & " Original Value: " & nOriginal
+                AreValuesDifferent = True
+            Else
+                AreValuesDifferent = False
+            End If
+
+        Case Else
+            ' Default comparison if type is not specified or recognized
+            If (Nz(formValue, "") <> Nz(originalValue, "")) Then
+                ' Debug.Print "DIFFERENCE DETECTED (Generic): " & _
+                            " Form Value: '" & Nz(formValue, "") & "' Original Value: '" & Nz(originalValue, "") & "'"
+                AreValuesDifferent = True
+            Else
+                AreValuesDifferent = False
+            End If
+    End Select
+End Function
+
+
+' Helper function to add a field to the SET clause
+Private Function AddSetClause(ByVal currentSetClauses As String, ByVal dbFieldName As String, ByVal formValue As Variant, ByVal fieldType As String, ByRef p_commaNeeded As Boolean) As String
+    Dim formattedValue As String
+
+    Select Case LCase(fieldType)
+        Case "string", "varchar"
+            If IsNull(formValue) Or Trim(Nz(formValue, "")) = "" Then
+                formattedValue = "NULL" ' For VARCHAR fields allowing NULL
+                ' If it's a VARCHAR NOT NULL (like 'paid'), and you want empty string for blanks:
+                ' If dbFieldName = "paid" Then formattedValue = "''" Else formattedValue = "NULL"
+            Else
+                formattedValue = "'" & Replace(CStr(formValue), "'", "''") & "'"
+            End If
+
+        Case "date"
+            If IsNull(formValue) Or Trim(Nz(formValue, "")) = "" Then
+                formattedValue = "NULL"
+            Else
+                formattedValue = "'" & Format(CDate(formValue), "yyyy-mm-dd") & "'"
+            End If
+
+        Case "double", "long", "int", "numeric"
+            If IsNull(formValue) Or Trim(Nz(formValue, "")) = "" Then
+                formattedValue = "NULL"
+            Else
+                ' Ensure it's a valid number before using
+                If IsNumeric(formValue) Then
+                    formattedValue = CStr(CDbl(formValue)) ' Numeric, no quotes
+                Else
+                    ' If not numeric, treat as NULL or specific default for error
+                    formattedValue = "NULL"
+                    ' Debug.Print "Warning: Non-numeric value for numeric field " & dbFieldName & ": " & formValue
+                End If
+            End If
+
+        Case Else ' Default for unknown types, treating as strings
+            formattedValue = "'" & Replace(Nz(formValue, ""), "'", "''") & "'"
+    End Select
+
+    If p_commaNeeded Then
+        AddSetClause = currentSetClauses & ", " & dbFieldName & " = " & formattedValue
+    Else
+        AddSetClause = dbFieldName & " = " & formattedValue
+        p_commaNeeded = True ' Set to True after the first field is added
+    End If
+End Function

@@ -1,0 +1,56 @@
+﻿Option Compare Database
+Private intLogonAttempts As Integer
+
+Private Sub Form_Open(Cancel As Integer)
+'On open set focus to combo box
+Me.cboEmployee.SetFocus
+End Sub
+
+Private Sub cboEmployee_AfterUpdate()
+'After selecting user name set focus to password field
+Me.txtPassword.SetFocus
+End Sub
+
+Private Sub cmdLogin_Click()
+
+'Check to see if data is entered into the UserName combo box
+
+    If IsNull(Me.cboEmployee) Or Me.cboEmployee = "" Then
+            MsgBox "You must enter a User Name.", vbOKOnly, "Required Data"
+            Me.cboEmployee.SetFocus
+        Exit Sub
+    End If
+
+'Check to see if data is entered into the password box
+
+    If IsNull(Me.txtPassword) Or Me.txtPassword = "" Then
+            MsgBox "You must enter a Password.", vbOKOnly, "Required Data"
+            Me.txtPassword.SetFocus
+        Exit Sub
+    End If
+
+'Check value of password in tblEmployees to see if this matches value chosen in combo box
+
+    If Me.txtPassword.value = DLookup("strEmpPassword", "tblEmployees", "[lngEmpID]=" & Me.cboEmployee.value) Then
+
+        lngMyEmpID = Me.cboEmployee.value
+
+'Close logon form and open splash screen
+        
+        DoCmd.Close acForm, "frmLogon", acSaveNo
+        DoCmd.OpenForm "frmSplash_Screen"
+
+        Else
+        MsgBox "Password Invalid.  Please Try Again", vbOKOnly, "Invalid Entry!"
+        Me.txtPassword.SetFocus
+    End If
+    
+'If User Enters incorrect password 3 times database will shutdown
+    
+    intLogonAttempts = intLogonAttempts + 1
+    If intLogonAttempts > 3 Then
+        MsgBox "You do not have access to this database.  Please contact your system administrator.", vbCritical, "Restricted Access!"
+        Application.Quit
+    End If
+    
+End Sub

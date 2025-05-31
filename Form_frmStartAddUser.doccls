@@ -1,0 +1,237 @@
+﻿Option Compare Database
+Option Explicit
+
+Dim strUserName As String
+Dim intPasswordExpireDays As Integer
+Dim blnChangePWD As Boolean
+Dim intAccessLevel As Integer
+Dim dtePwdDate As Date
+
+Private Function CheckValidUserName() As Boolean
+
+    CheckValidUserName = True
+    
+    If Nz(Me.txtUsername, "") = "" Then
+            FormattedMsgBox "User name NOT entered" & _
+                "@Please try again     @", vbCritical, "You MUST enter a user name!"
+            CheckValidUserName = False
+    ElseIf Len(txtUsername) > 15 Or InStr(txtUsername, " ") > 0 Then
+           FormattedMsgBox "The user name must have a maximum of 15 characters with no spaces" & _
+               "@Please try again     @", vbCritical, "User name error"
+           CheckValidUserName = False
+    ElseIf Len(txtUsername) < 4 Or InStr(txtUsername, " ") Then
+            FormattedMsgBox "The user name must have a minimum of 4 characters with no spaces" & _
+               "@Please try again     @", vbCritical, "User name error"
+           CheckValidUserName = False
+    End If
+    
+    If CheckValidUserName = False Then
+'        cmdAdd.Enabled = False
+'        Me.txtExpireDays = 0
+'        Me.cboChangePWD = "No"
+'        Me.cboLevel = 1
+    End If
+    
+End Function
+
+Private Function CheckValidPassword() As Boolean
+
+    CheckValidPassword = True
+    
+    If Nz(Me.txtPassword, "") = "" Then
+        FormattedMsgBox "Password NOT entered" & _
+            "@Please try again     @", vbCritical, "You MUST enter a password!"
+        CheckValidPassword = False
+    ElseIf Len(txtPassword) < 5 Or InStr(txtPassword, " ") > 0 Then
+        FormattedMsgBox "Password too short" & _
+           "@Please try again     @", vbCritical, "Password error"
+        CheckValidPassword = False
+'    ElseIf txtRepeatPass <> txtPassword Then
+'        MsgBox "Password mismatch.", vbInformation, "Error"
+'        CheckValidPassword = False
+    ElseIf StrComp(txtRepeatPass, txtPassword, vbBinaryCompare) <> 0 Then
+        MsgBox " Password mismatch.", vbInformation, "Error (CS)"
+        CheckValidPassword = False
+    End If
+    
+    If CheckValidPassword = False Then
+'        cmdAdd.Enabled = False
+'        Me.txtExpireDays = 0
+'        Me.cboChangePWD = "No"
+'        Me.cboLevel = 1
+        txtPassword = ""
+        txtRepeatPass = ""
+    End If
+    
+End Function
+
+Private Function CheckValidEmail() As Boolean
+
+    CheckValidEmail = True
+    
+    Dim strCrit As String
+    Dim emailExist As Integer
+
+    strCrit = "Email='" & Me.txtEmail & "'"
+    emailExist = DCount("*", "tblUsers", strCrit)
+    
+    Debug.Print emailExist
+
+    If Nz(Me.txtEmail, "") = "" Then
+            FormattedMsgBox "Email NOT entered" & _
+                "@Please try again     @", vbCritical, "email must not blank!"
+            CheckValidEmail = False
+    ElseIf IsValidEmail(Me.txtEmail) = False Then
+        MsgBox txtEmail & " is not a valid email address.", vbCritical, "Invalid Email"
+        CheckValidEmail = False
+    ElseIf emailExist > 0 Then
+        MsgBox "Email already used.", vbInformation, "Error"
+        CheckValidEmail = False
+    End If
+    
+    If CheckValidEmail = False Then
+        Me.txtEmail.SetFocus
+    End If
+    
+End Function
+
+Private Sub chkShowPass_Click()
+
+    If Me.chkShowPass.value = 0 Then
+        Me.txtPassword.InputMask = "password"
+        Me.txtRepeatPass.InputMask = "password"
+    Else
+        Me.txtPassword.InputMask = ""
+        Me.txtRepeatPass.InputMask = ""
+    End If
+
+End Sub
+
+Private Sub cmdAddUser_Click()
+
+On Error GoTo Err_Handler
+
+' ADDED 2024-04-16
+If Nz(Me.txtUsername, vbNullString) = vbNullString Or _
+      Nz(Me.txtPassword, vbNullString) = vbNullString Or _
+      Nz(Me.txtEmail, vbNullString) = vbNullString Or _
+      Nz(Me.txtEncoderCode, vbNullString) = vbNullString Then
+
+    MsgBox "All fields must be filled.", vbOKOnly + vbInformation, ""
+    
+  ' Textboxes are empty, exit the subroutine
+  Exit Sub
+
+End If
+
+
+strUserName = Me.txtUsername
+strPassword = Me.txtRepeatPass
+strEncoderCode = Me.txtEncoderCode
+intPasswordExpireDays = 0
+intAccessLevel = 1
+strEmail = Me.txtEmail
+
+
+    If CheckValidUserName = False Then Exit Sub
+    If CheckValidPassword = False Then Exit Sub
+    If CheckValidEmail = False Then Exit Sub
+
+    CurrentDb.Execute "INSERT INTO tblUsers ( UserName,encodercode, Active, PWD, ChangePWD, ExpireDays, AccessLevel, Email, RefUser)" & _
+    " SELECT '" & strUserName & "' AS UserName, '" & strEncoderCode & "' as encodercode, True AS Active, '" & RC4(strPassword, "RC4_Key") & "' AS PWD," & _
+        " " & blnChangePWD & " AS ChangePWD, " & intPasswordExpireDays & " AS ExpireDays," & _
+        " " & intAccessLevel & " AS AccessLevel," & _
+        " '" & strEmail & "' AS Email," & _
+        " '" & GetUserName & "' AS RefUser;"
+        
+        
+    FormattedMsgBox "UserName " & strUserName & " successfully added." & _
+    "@ You can now login      @", vbInformation + vbOKOnly, "Added"
+    
+    DoCmd.Close
+
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    MsgBox "Error " & Err.Number & " in cmdAddUser_Click procedure : " & Err.Description
+    Resume Exit_Handler
+        
+End Sub
+
+Private Sub cmdExit_Click()
+    DoCmd.Close
+End Sub
+
+Private Sub cmdTest_Click()
+
+Dim strCrit As String
+Dim emailExist As Integer
+
+    strCrit = "Email='" & Me.txtEmail & "'"
+    emailExist = DCount("*", "tblUsers", strCrit)
+    Debug.Print emailExist
+    
+End Sub
+
+Private Sub Form_Load()
+    Me.txtUsername.SetFocus
+    DoCmd.Restore
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+
+    Form.InsideHeight = 4000
+    Form.InsideWidth = 5000
+    
+    'Custom Right-Click Menu
+    Dim CustomMenu As Object
+    Dim NewButton As Object
+
+    On Error Resume Next
+    CommandBars("Basic Menu").Delete
+    
+    Set CustomMenu = CommandBars.Add("Basic Menu", 5, False, True)
+        CustomMenu.Controls.Add 1, 21, , , True ' 21=cut
+        CustomMenu.Controls.Add 1, 19, , , True ' 19=copy
+        CustomMenu.Controls.Add 1, 22, , , True ' 22=paste
+    
+End Sub
+
+Private Sub FormHeader_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+
+On Error GoTo Err_Handler
+ 
+    X = ReleaseCapture()
+    X = SendMessage(Me.hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0)
+    
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "FormHeader_MouseDown"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+
+End Sub
+
+Private Sub txtUsername_AfterUpdate()
+
+    If CheckValidUserName = False Then Exit Sub
+    'Debug.Print "CheckValidUserName = " & CheckValidUserName
+    
+    If DCount("UserName", "tblUsers", "UserName='" & Me.txtUsername & "'") > 0 Then
+        Me.lblInfo.Visible = True
+        Me.lblInfo.Caption = "Username already exists."
+        Me.txtUsername = ""
+    End If
+    
+End Sub
+
+Private Sub txtUsername_Click()
+    Me.lblInfo.Caption = ""
+End Sub
+
+Private Sub txtUsername_GotFocus()
+    Me.lblInfo.Caption = ""
+End Sub

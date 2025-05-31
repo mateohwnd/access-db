@@ -1,0 +1,111 @@
+﻿Option Compare Database
+
+Public Sub refreshScreen()
+
+On Error GoTo HANDLE_ERROR:
+    Dim rs As Recordset
+    Dim sql1 As String
+        
+    ' qrycashflow has date now criteria
+    sql1 = "select sum(amount) as totalcashIn from qrycashflow where cashinout='in' and cfdate=#" & Me.txtDateToday & "#;"
+    sql2 = "select sum(amount) as totalcashOut from qrycashflow where cashinout='out' and cfdate=#" & Me.txtDateToday & "#;"
+
+    Set rs = CurrentDb.OpenRecordset(sql1)
+    
+    If rs.recordCount > 0 Then
+        Me.txtTotalCashIn = rs!totalcashin
+    End If
+    
+    Set rs = CurrentDb.OpenRecordset(sql2)
+    
+    If rs.recordCount > 0 Then
+        Me.txtTotalCashOut = rs!totalcashout
+    End If
+    
+    'Me.[cfs].Form.Requery
+    Me.cfs.Form.RefreshForm (Me.txtDateToday)
+
+    Me.txtSubTotal = Nz(Me.txtTotalCashIn, 0) - Nz(Me.txtTotalCashOut, 0)
+    
+HANDLE_ERROR:
+    If Err.Number <> 0 Then MsgBox "Error: " & Err.Number & vbCrLf & Err.Description, vbCritical, "ERROR-refreshscreen"
+End Sub
+
+Private Sub cmdAdd_Click()
+    DoCmd.OpenForm "frmcashflowdata", , , , , , "new"
+End Sub
+
+Private Sub cmdClose_Click()
+On Error GoTo Err_cmdEXIT_Click
+    
+    DoCmd.Close
+
+Exit_cmdEXIT_Click:
+    Exit Sub
+
+Err_cmdEXIT_Click:
+    MsgBox Err.Description
+    Resume Exit_cmdEXIT_Click
+End Sub
+
+Private Sub cmdBack_Click()
+    Call DisplayDate
+    Me.txtDateToday = Me.txtPreviousDay
+    Call refreshScreen
+End Sub
+
+Private Sub cmdForward_Click()
+    Call DisplayDate
+    Me.txtDateToday = Me.txtNextDay
+    Call refreshScreen
+End Sub
+
+Private Sub DisplayDate()
+    Dim previousDay As Date
+    Dim nextDay As Date
+    
+    previousDay = DateAdd("d", -1, Me.txtDateToday)
+    nextDay = DateAdd("d", 1, Me.txtDateToday)
+    
+    Me.txtPreviousDay = previousDay
+    Me.txtNextDay = nextDay
+End Sub
+
+Private Sub cmdView_Click()
+    DoCmd.OpenReport "rptcf", acViewPreview, , "[cfdate]=#" & Me.txtDateToday & "#"
+End Sub
+
+Private Sub Form_BeforeUpdate(Cancel As Integer)
+   Dim strMsg As String
+   Dim iResponse As Integer
+
+   ' Specify the message to display.
+   strMsg = "Do you wish to save the changes?" & Chr(10)
+   strMsg = strMsg & "Click Yes to Save or No to Discard changes."
+
+   ' Display the message box.
+   iResponse = MsgBox(strMsg, vbQuestion + vbYesNo, "Save Record?")
+
+   ' Check the user's response.
+   If iResponse = vbNo Then
+       ' Undo the change.
+       DoCmd.RunCommand acCmdUndo
+       ' Cancel the update.
+       Cancel = True
+   End If
+End Sub
+
+Private Sub Form_Load()
+    Me.txtDateToday = Date
+
+    Call refreshScreen
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+    Form.InsideHeight = 5500
+    Form.InsideWidth = 11700
+End Sub
+
+Private Sub txtDateToday_AfterUpdate()
+    Call refreshScreen
+End Sub

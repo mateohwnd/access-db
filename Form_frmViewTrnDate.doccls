@@ -1,0 +1,89 @@
+﻿Option Compare Database
+
+Private Sub cmdClear_Click()
+    Me.txtDateFrom = ""
+    Me.txtDateTo = ""
+    Me.txtClient = ""
+    TempVars.RemoveAll
+    Me.lstClient.Requery
+End Sub
+
+Private Sub cmdPerClient_Click()
+    DoCmd.OpenReport "rptclienttrn1", acViewPreview
+    'MsgBox TempVars!Date1 & " " & TempVars!Date2 & " " & TempVars!Client1
+End Sub
+
+Private Sub cmdToday_Click()
+    txtDateFrom = Date
+    txtDateTo = txtDateFrom
+    TempVars!Date1 = txtDateFrom.value
+    TempVars!Date2 = txtDateTo.value
+    Me.lstClient.Requery
+End Sub
+
+Private Sub cmdView_Click()
+    
+On Error GoTo Err_Handler
+
+    TempVars!Date1 = ""
+    TempVars!Date2 = ""
+    TempVars!Client1 = ""
+    
+'    If IsNull(Me.txtDateFrom) = True Then
+'        MsgBox "must enter a valid date from start", vbInformation, ""
+'        Me.txtDateFrom.SetFocus
+'        Exit Sub
+'    ElseIf IsNull(txtDateTo) = True Then
+'        txtDateTo = txtDateFrom
+'    End If
+    
+    TempVars!Date1 = txtDateFrom.value
+    TempVars!Date2 = txtDateTo.value
+    TempVars!Client1 = txtClient.value
+    
+    'MsgBox TempVars("date1") & " " & TempVars("date2")
+    
+    DoCmd.OpenReport "rptClientTrn", acViewPreview
+    
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "cmdView_Click"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub Form_Load()
+    Dim Date1 As TempVar
+    Dim Date2 As TempVar
+    Dim Client1 As TempVar
+    
+    Form.InsideHeight = 5000
+    Form.InsideWidth = 9000
+    
+    Call cmdToday_Click
+End Sub
+
+Private Sub lstClient_Click()
+     TempVars!Client1 = Me.lstClient.Column(0)
+     Me.txtClient = TempVars!Client1
+End Sub
+
+Private Sub lstClient_DblClick(Cancel As Integer)
+    DoCmd.OpenReport "rptclienttrn1", acViewPreview
+End Sub
+
+Private Sub txtDateFrom_AfterUpdate()
+    txtDateTo = txtDateFrom
+    TempVars!Date1 = txtDateFrom.value
+    TempVars!Date2 = txtDateTo.value
+    Me.lstClient.Requery
+End Sub
+
+Private Sub txtDateTo_AfterUpdate()
+    TempVars!Date1 = txtDateFrom.value
+    TempVars!Date2 = txtDateTo.value
+    Me.lstClient.Requery
+End Sub

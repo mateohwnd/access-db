@@ -1,0 +1,152 @@
+﻿Option Compare Database
+Option Explicit
+
+Private Sub btnValidate_Click()
+    Dim RC4Pass As String
+    
+    RC4Pass = DLookup("PWD", "tblUsers", "UserName = '" & GetUserName & "'")
+    strPassword = RC4(RC4Pass, "RC4_Key")
+    
+    If Me.txtOldPass = "" Or IsNull(Me.txtOldPass) Then
+        MsgBox "Please enter the current password", vbInformation, "Old Password Required"
+        Me.txtOldPass.SetFocus
+    ElseIf strPassword <> Me.txtOldPass Then
+        MsgBox "Old Password is Incorrent", vbCritical, "Denied"
+        Me.txtOldPass.SetFocus
+    ElseIf StrComp(strPassword, Me.txtOldPass, vbBinaryCompare) <> 0 Then
+        MsgBox "Old password wrong", vbInformation, "Error (CS)"
+        Me.txtOldPass.SetFocus
+    ElseIf IsNull(Me.txtNewPass) Then
+        MsgBox "Please enter your new password.", vbInformation, "New Password"
+        Me.txtNewPass.SetFocus
+    ElseIf IsNull(Me.txtConfirmPass) Then
+        MsgBox "Please enter your confirm password.", vbInformation, "Confirmation Required"
+        Me.txtNewPass.SetFocus
+    ElseIf StrComp(Me.txtNewPass, Me.txtConfirmPass, vbBinaryCompare) <> 0 Then
+        MsgBox "New password and confirm password does not match.", vbCritical, "Error"
+        'clear
+        Me.txtNewPass = ""
+        Me.txtConfirmPass = ""
+        Me.txtNewPass.SetFocus
+    ElseIf Len(Me.txtConfirmPass) < 5 Then
+        MsgBox "Password too short." & vbCrLf & "At least 5 characters long.", vbInformation, "Error"
+        Me.txtNewPass = ""
+        Me.txtConfirmPass = ""
+        Me.txtNewPass.SetFocus
+    Else
+        Dim db As DAO.Database
+        Set db = CurrentDb
+        Dim sql As String
+        Dim UsrID As Long
+        
+        If Len(txtNewPass.value) < 4 Then
+            'MsgBox Len(txtNewPass.Value)
+            MsgBox "New password is too short", vbCritical, "Change password failed!"
+            Me.txtNewPass = ""
+            Me.txtConfirmPass = ""
+            Me.txtNewPass.SetFocus
+        ElseIf Me.txtNewPass.value = Me.txtOldPass.value Then
+            MsgBox "New password must not be the same " & Chr(13) & Chr(10) & "as your old password.", vbCritical, "Change password failed!"
+            Me.txtNewPass = ""
+            Me.txtConfirmPass = ""
+            Me.txtNewPass.SetFocus
+        Else
+            sql = "UPDATE tblUsers" _
+            & " SET [PWD] = '" & RC4(Me.txtNewPass, "RC4_Key") & "'" _
+            & " WHERE [UserName] = '" & GetUserName & "'" _
+    '        & " AND [User_ID] = " & UsrID _
+    '        & " AND [PWD] = '" & Me.txtOldPass & "'"
+    
+    '        Debug.Print sql
+            db.Execute sql, dbFailOnError
+            MsgBox "Your account password" & vbCrLf & "Is successfully changed!", vbInformation, "Notice"
+            
+            Logout
+            DoCmd.OpenForm "frmStart"
+            
+        End If
+    End If
+End Sub
+
+Private Sub cmdExit_Click()
+    DoCmd.Close
+End Sub
+
+Private Sub cmdTest_Click()
+    Logout
+End Sub
+
+Private Sub Form_Load()
+    Me.lblVariable.Caption = StrConv(GetUserName, vbProperCase)
+    Me.txtOldPass.SetFocus
+    
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+    DoCmd.Restore
+    Form.InsideHeight = 3000
+    Form.InsideWidth = 4600
+    
+    'Custom Right-Click Menu
+    Dim CustomMenu As Object
+    Dim NewButton As Object
+
+    On Error Resume Next
+    CommandBars("Basic Menu").Delete
+    
+    Set CustomMenu = CommandBars.Add("Basic Menu", 5, False, True)
+        CustomMenu.Controls.Add 1, 21, , , True ' 21=cut
+        CustomMenu.Controls.Add 1, 19, , , True ' 19=copy
+        CustomMenu.Controls.Add 1, 22, , , True ' 22=paste
+End Sub
+
+Private Sub FormHeader_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+
+On Error GoTo Err_Handler
+ 
+    X = ReleaseCapture()
+    X = SendMessage(Me.hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0)
+    
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "FormHeader_MouseDown"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub imgUser_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+
+On Error GoTo Err_Handler
+ 
+    X = ReleaseCapture()
+    X = SendMessage(Me.hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0)
+    
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "FormHeader_MouseDown"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub lblVariable_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+
+On Error GoTo Err_Handler
+ 
+    X = ReleaseCapture()
+    X = SendMessage(Me.hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0)
+    
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "FormHeader_MouseDown"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+    
+End Sub

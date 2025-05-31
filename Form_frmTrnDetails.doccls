@@ -1,0 +1,65 @@
+﻿Option Compare Database
+Option Explicit
+
+Private Sub cboTrn_DblClick(Cancel As Integer)
+    TempVars!tmpDataTypeID = 7
+    'Call ListTempVars
+    DoCmd.OpenForm "frmhelperdataadd"
+End Sub
+
+Private Sub cboTrn_KeyPress(KeyAscii As Integer)
+    Select Case KeyAscii
+        'Case 48 To 57
+        ' numeric character, do nothing
+        'Case 8
+        ' - character
+        'Case 65 To 90
+        ' uppercase A-Z
+        'Case 97 To 122
+        ' lowercase a-z
+        'Case 45
+        ' backspace, do nothing
+        Case Else
+        ' suppress character entered
+        KeyAscii = 0
+        Me.cboTrn.Dropdown
+    End Select
+    
+'  Const ASCII_LOWER_A = 97
+'  Const ASCII_LOWER_Z = 122
+'  Const UPPER_MODIFIER = -32
+'
+'  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+'    KeyAscii = KeyAscii + UPPER_MODIFIER
+'  End If
+End Sub
+
+'Private Sub txtAmount_LostFocus()
+'    Call totalRefresh
+'End Sub
+'
+'Sub totalRefresh()
+'    Dim a As Integer
+'    Dim b As Integer
+'    a = Forms!frmtrn.txtDeposit
+'    a = Nz(a)
+'    b = Nz(Forms!frmtrn!frmTrnDetails.Form!txtAmountSum)
+'
+'    'MsgBox a
+'        If a = 0 Then
+'            Forms!frmtrn!frmTrnDetails.Form!txtDpst.Visible = False
+'            Forms!frmtrn!frmTrnDetails.Form!txtTotal.Visible = False
+'            Forms!frmtrn!frmTrnDetails.Form!lntotal.Visible = False
+'            Forms!frmtrn!frmTrnDetails.Form!lblDeposit.Visible = False
+'        Else
+'            Forms!frmtrn!frmTrnDetails.Form!txtDpst.Visible = True
+'            Forms!frmtrn!frmTrnDetails.Form!txtTotal.Visible = True
+'            Forms!frmtrn!frmTrnDetails.Form!lntotal.Visible = True
+'            Forms!frmtrn!frmTrnDetails.Form!lblDeposit.Visible = True
+'        End If
+'        If b = 0 Then
+'            Forms!frmtrn!frmTrnDetails.Form!lblTotalTrans.Visible = False
+'        Else
+'            Forms!frmtrn!frmTrnDetails.Form!lblTotalTrans.Visible = True
+'        End If
+'End Sub

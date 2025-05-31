@@ -1,0 +1,97 @@
+﻿Option Compare Database
+
+Private Sub cboAmount_AfterUpdate()
+   Me.txtAmtWords = Me![cboAmount].Column(2)
+End Sub
+
+Private Sub cmdExit_Click()
+On Error GoTo Err_cmdEXIT_Click
+
+
+    DoCmd.Close
+
+Exit_cmdEXIT_Click:
+    Exit Sub
+
+Err_cmdEXIT_Click:
+    MsgBox Err.Description
+    Resume Exit_cmdEXIT_Click
+    
+End Sub
+
+
+
+
+Private Sub Form_BeforeUpdate(Cancel As Integer)
+   Dim strMsg As String
+   Dim iResponse As Integer
+   
+   Me![DateModified].value = Now()
+
+   ' Specify the message to display.
+   strMsg = "Do you wish to save the changes?" & Chr(10)
+   strMsg = strMsg & "Click Yes to Save or No to Discard changes."
+
+   ' Display the message box.
+   iResponse = MsgBox(strMsg, vbQuestion + vbYesNo, "Save Record?")
+   
+   ' Check the user's response.
+   If iResponse = vbNo Then
+       ' Undo the change.
+       DoCmd.RunCommand acCmdUndo
+
+       ' Cancel the update.
+       Cancel = True
+   End If
+End Sub
+
+
+Private Sub Text12_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub Text14_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub Text55_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub Textbox_Name_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub Textbox_PlateNumber_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub

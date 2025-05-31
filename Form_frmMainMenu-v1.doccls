@@ -1,0 +1,215 @@
+﻿Option Compare Database
+
+Private Sub btnReset_Click()
+    txtInputBox = Null
+End Sub
+
+Private Sub Edit_Record_Click()
+    Dim intTotalRecord As Integer
+    
+    If IsNull(Me.txtInputBox) Then
+        Me.txtInputBox.BackColor = vbRed
+        MsgBox "Must enter plate, mvfile or coc", vbInformation, "error"
+        Me.txtInputBox.BackColor = vbWhite
+        Me.txtInputBox = Null
+        Me.txtInputBox.SetFocus
+    Else
+        intTotalRecord = DCount("PLATN", "masterlist", "[PLATN] = '" & Me.txtInputBox & "'") _
+        Or DCount("BLTFN", "masterlist", "[BLTFN] = '" & Me.txtInputBox & "'") _
+        Or DCount("COCN", "masterlist", "[COCN] = '" & Me.txtInputBox & "'")
+    
+        If intTotalRecord = 0 Then MsgBox "No Record!", vbInformation, ""
+        If intTotalRecord = 1 Then
+            DoCmd.OpenForm "frmData", , , , acFormEdit, , "EditRecord"
+            Forms![frmData].AllowAdditions = False
+        End If
+        If intTotalRecord > 1 Then
+            MsgBox intTotalRecord & " records found", vbInformation, ""
+            DoCmd.OpenForm "frmContinuous"
+        End If
+    End If
+End Sub
+
+Private Sub Add_Record_Click()
+    If IsNull(Me.txtInputBox) Then
+        Me.txtInputBox.BackColor = vbRed
+        MsgBox "Must enter plate, mvfile or coc", vbInformation, "error"
+        Me.txtInputBox.BackColor = vbWhite
+        Me.txtInputBox = Null
+        Me.txtInputBox.SetFocus
+    Else
+        If DCount("PLATN", "masterlist", "[PLATN] = '" & Me.txtInputBox & "'") > 0 _
+        Or DCount("BLTFN", "masterlist", "[BLTFN] = '" & Me.txtInputBox & "'") > 0 _
+        Or DCount("COCN", "masterlist", "[COCN] = '" & Me.txtInputBox & "'") > 0 Then
+            MsgBox "Record already exists!", vbInformation, ""
+            Me.txtInputBox.SetFocus
+        Else
+            DoCmd.OpenForm "frmData", , , , acFormAdd, , "NewRecord"
+            Forms![frmData].NavigationButtons = False
+        End If
+    End If
+End Sub
+
+Private Sub btn_coc_plate2_Click()
+    DoCmd.OpenReport "rptCOCPremiere", acViewPreview
+End Sub
+
+Private Sub btn_open_rptByPlate2_Click()
+    DoCmd.OpenReport "rptCOCMilestone", acViewPreview
+End Sub
+
+Private Sub btn_or_dwl_Click()
+    DoCmd.OpenReport "rptORdwl", acViewPreview
+End Sub
+
+Private Sub btn_policy_plate_2_Click()
+    DoCmd.OpenReport "rptPolicyPremiere", acViewPreview
+End Sub
+
+Private Sub btn_printPolicy_Click()
+    DoCmd.OpenReport "rptPolicyMilestone", acViewPreview
+End Sub
+
+Private Sub btnExit_Click()
+    DoCmd.Quit acQuitSaveAll
+End Sub
+
+Private Sub btnORPremiere_Click()
+    DoCmd.OpenReport "rptORPremiere", acViewPreview
+End Sub
+
+Private Sub btnQryName_Click()
+    DoCmd.OpenForm "frmnamesearch"
+End Sub
+
+Private Sub btnTRN_Click()
+    DoCmd.OpenForm "frmclienttrn"
+End Sub
+
+Private Sub cmdViewTrnDate_Click()
+    DoCmd.OpenForm "frmViewTrnDate"
+End Sub
+
+Private Sub Command23_Click()
+    DoCmd.OpenReport "rptORMilestone", acViewPreview
+End Sub
+
+Private Sub Form_Close()
+    DoCmd.Quit acQuitSaveNone
+End Sub
+
+Private Sub txtCOC_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub txtMVFile_KeyPress(KeyAscii As Integer)
+    Select Case KeyAscii
+        Case 48 To 57
+        ' numeric character, do nothing
+        Case 8
+        ' - character
+        Case 65 To 90
+        ' uppercase A-Z
+        Case 97 To 122
+        ' lowercase a-z
+        Case 45
+        ' backspace, do nothing
+        Case Else
+        ' suppress character entered
+        KeyAscii = 0
+    End Select
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub txtPlate_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+'    Form.InsideHeight = 6850
+'    Form.InsideWidth = 7150
+    
+    If CommandBars("ribbon").Height > 100 Then CommandBars.ExecuteMso "MinimizeRibbon"
+End Sub
+
+Private Sub List65_Click()
+TempVars!mvf = Me.List65.Column(3)
+TempVars!coc = Me.List65.Column(4)
+TempVars!plt = Me.List65.Column(5)
+
+mvf = Len(TempVars!mvf)
+plt = Len(TempVars!plt)
+coc = Len(TempVars!coc)
+
+    If mvf <> 0 Then
+        Me.txtInputBox = TempVars!mvf
+        Exit Sub
+    End If
+    If coc <> 0 Then
+        Me.txtInputBox = TempVars!coc
+        Exit Sub
+    End If
+    If plt <> 0 Then
+        Me.txtInputBox = TempVars!plt
+        Exit Sub
+    End If
+End Sub
+
+Private Sub List65_DblClick(Cancel As Integer)
+    DoCmd.OpenForm "frmData"
+End Sub
+
+Private Sub List65_GotFocus()
+    Forms![frmMainMenu].List65.Requery
+End Sub
+
+Private Sub txtInputBox_KeyPress(KeyAscii As Integer)
+    Select Case KeyAscii
+        Case 48 To 57
+        ' numeric character, do nothing
+
+        Case 8
+        ' - character
+        
+        Case 65 To 90
+        ' uppercase A-Z
+        
+        Case 97 To 122
+        ' lowercase a-z
+        
+        Case 45
+        ' backspace, do nothing
+
+        Case Else
+        ' suppress character entered
+
+        KeyAscii = 0
+    End Select
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub

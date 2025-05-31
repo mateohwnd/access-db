@@ -1,0 +1,479 @@
+﻿Option Compare Database
+Option Explicit
+
+Dim Attempts As Integer
+Dim bFlag As Boolean
+Dim bReset As Boolean
+Dim Repeat As Boolean
+Dim intPasswordExpireDays As Integer
+
+Private Sub Image31_DblClick(Cancel As Integer)
+    DoCmd.OpenForm "frmStartAddUser"
+End Sub
+
+Private Sub DoLogin()
+
+On Error GoTo Err_Handler
+
+    'Create a login event for this user
+    lngUserID = Nz(DMax("LoginID", "tblLoginSessions") + 1, 1)
+    
+    'flag that the user is currently logged in
+    Call CreateSession(lngUserID)
+    Call LogMeIn(lngUserID)
+    'MsgBox "Login", vbInformation, ""
+    'Open the main form and close this one
+    DoCmd.OpenForm "frmMainMenu"
+    DoCmd.Close acForm, Me.Name
+        
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    MsgBox "Error " & Err.Number & " in DoLogin procedure: " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub btnDesign_Click()
+
+On Error GoTo Err_Handler
+
+    Dim s As String
+    
+    'If IsNull(TempVars("IsManager")) Then
+'        S = InputBoxDK("Enter Password:", "Password Protected")
+'        If S <> "123" Then Exit Sub
+    '    TempVars("IsManager") = True
+    'End If
+
+    Application.Echo False
+    
+    SetAccessWindow (SW_SHOW)
+    ShowNavigationPane
+    ShowRibbon
+    
+    ' maximize ribbon
+    If CommandBars("ribbon").Height < 100 Then
+        CommandBars.ExecuteMso "MinimizeRibbon"
+    End If
+
+    DoCmd.Close acForm, Me.Name
+    DoCmd.OpenForm "frmStart", acDesign
+    
+    Application.Echo True
+    
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    strProc = "btnDesign_Click"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub btnMinimize_Click()
+
+On Error GoTo Err_Handler
+
+    DoCmd.Minimize
+
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    strProc = "btnMinimize_Click"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub chkShowPass_Click()
+
+    If Me.chkShowPass.value = 0 Then
+        Me.txtPassword.InputMask = "password"
+    Else
+        Me.txtPassword.InputMask = ""
+    End If
+
+End Sub
+
+Private Sub cmdExit_Click()
+    'DoCmd.Close
+    Application.Quit
+End Sub
+
+Private Sub cmdLogin_Click()
+
+On Error GoTo Err_Handler
+
+    Dim RC4Pass As String
+    
+' entry for dev offline access
+If txtUsername = "dev" And StrComp(txtPassword, "8gYQYcKR", vbBinaryCompare) = 0 Then
+
+    Application.Echo False
+    strUserName = Me.txtUsername
+    intAccessLevel = 3
+    strEncoderCode = "C"
+             
+    SetAccessWindow (SW_SHOW)
+    ShowNavigationPane
+    ShowRibbon
+    
+    ' maximize ribbon
+    If CommandBars("ribbon").Height < 100 Then
+        CommandBars.ExecuteMso "MinimizeRibbon"
+    End If
+    
+    DoCmd.RunCommand acCmdAppMaximize 'maximize app window
+    DoCmd.Close acForm, Me.Name
+    DoCmd.OpenForm "frmmainmenu" ', acDesign
+    Application.Echo True
+    Exit Sub
+
+ElseIf txtUsername = "dev" And StrComp(txtPassword, "Abc123", vbBinaryCompare) <> 0 Then
+    MsgBox "Invalid " & txtUsername & " password", vbInformation, ""
+    Exit Sub
+    
+Else
+
+    ' Check connection to server befor proceeding to next code
+    If ConnectionStatus = False Then
+        MsgBox "No Connection to Server", vbCritical, "Error"
+        Exit Sub
+    End If
+
+'entry for users in tblUsers
+'2.Get user info
+    If Trim(Me.txtUsername & "") <> "" Then
+        If IsNull(DLookup("UserName", "tblUsers", "UserName = '" & txtUsername.value & "'")) Then
+            MsgBox "Invalid UserName", vbCritical, "Error"
+            Me.txtUsername.SetFocus
+            Exit Sub
+            
+        End If
+
+        strUserName = Me.txtUsername 'user name from textbox
+        strComputerName = GetComputerName()
+        RC4Pass = DLookup("PWD", "tblUsers", "UserName = '" & txtUsername.value & "'")
+        strPassword = RC4(RC4Pass, "RC4_Key")
+        intAccessLevel = DLookup("AccessLevel", "tblUsers", "UserName = '" & strUserName & "'")
+        strEncoderCode = DLookup("encodercode", "tblUsers", "UserName = '" & strUserName & "'")
+
+        'Debug.Print strUserName, strEncoderCode, strPassword, strComputerName, intAccessLevel, GetAccessLevel
+    Else
+        MsgBox "Blank Username", vbCritical, "Error"
+        Exit Sub
+    End If
+
+    If Trim(Me.txtPassword & "") <> "" Then
+        'does it match the users password
+        If Trim(Me.txtPassword & "") <> strPassword Then
+            'No Match - 3 attempts allowed
+            Attempts = Attempts + 1
+            
+            Select Case Attempts
+            Case 1
+'                FormattedMsgBox "Invalid Password            " & _
+'                    "@Please try again      @", vbInformation + vbOKOnly, "Password Error"
+                MsgBox "Invalid Password", vbCritical, "Error"
+                Me.txtPassword = ""
+                Me.txtPassword.SetFocus
+                Me.lblTest.Caption = "Forgot Password?"
+                Me.lblTest.Visible = True
+                Exit Sub
+            
+            Case 2
+'                    FormattedMsgBox "You have entered an incorrect password TWICE           " & _
+'                    "@You have ONE more attempt left      @", vbExclamation + vbOKOnly, "Password Error"
+                MsgBox "Invalid Password", vbCritical, "Error"
+                Me.txtPassword = ""
+                Me.txtPassword.SetFocus
+                Exit Sub
+            
+            Case 3
+'                FormattedMsgBox "You have entered an incorrect password THREE times         " & _
+'                    "@The application will now close          @", vbCritical + vbOKOnly, "Password entry failed"
+                MsgBox "Invalid Password", vbCritical, "Error"
+                Application.Quit
+                Attempts = 0
+                'DoCmd.Close
+                Exit Sub
+            End Select
+        End If
+        
+        'Debug.Print Me.txtPassword, strPassword
+        
+        ' case sensitive password check
+        If StrComp(Me.txtPassword, strPassword, vbBinaryCompare) <> 0 Then
+            MsgBox "Wrong password.", vbInformation, "Error (CS)"
+            Exit Sub
+        End If
+                
+        '1. Check if user logged in elsewhere
+        Dim strCriteria As String
+        strCriteria = "UserName='" & Me.txtUsername & "' And LogoutEvent Is Null"
+    
+        If DCount("*", "tblLoginSessions", strCriteria) > 0 Then
+            If DLookup("ComputerName", "tblLoginSessions", strCriteria) <> GetComputerName Then
+                'user logged in on another computer
+                FormattedMsgBox "User " & Me.txtUsername & " is already logged in at workstation " & DLookup("ComputerName", "tblLoginSessions", strCriteria) & "      " & _
+                    "@User " & Me.txtUsername & " MUST logout from that computer before logging in again            @", vbCritical, "Already logged in"
+                'Me.cmdLogin.Enabled = False
+                txtUsername = ""
+                Exit Sub
+            Else
+                'end previous session for this user on current computer so a new session can be started
+                CurrentDb.Execute "UPDATE tblLoginSessions SET LogoutEvent = Now()" & _
+                    " WHERE UserName=GetUserName() AND LogoutEvent Is Null AND ComputerName=GetComputerName();"
+            End If
+        End If
+        
+        ' if login as dev1
+        If intAccessLevel = 3 Then
+        
+            Application.Echo False
+            lngUserID = Nz(DMax("LoginID", "tblLoginSessions") + 1, 1)
+            'flag that the user is currently logged in
+            Call CreateSession(lngUserID)
+            Call LogMeIn(lngUserID)
+                            
+            SetAccessWindow (SW_SHOW)
+            ShowNavigationPane
+            ShowRibbon
+            
+            ' maximize ribbon
+            If CommandBars("ribbon").Height < 100 Then
+                CommandBars.ExecuteMso "MinimizeRibbon"
+            End If
+            
+            DoCmd.RunCommand acCmdAppMaximize 'maximize app window
+            DoCmd.Close acForm, Me.Name
+            'DoCmd.OpenForm "frmStart", acDesign
+            
+            Application.Echo True
+            Exit Sub
+        End If
+            
+        'Create a login event for this user
+        DoLogin
+    Else
+        MsgBox "Please enter password.", vbCritical, "Error"
+        Me.txtPassword.SetFocus
+    End If 'for tblUsers
+
+End If 'for dev
+
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    MsgBox "Error " & Err.Number & " in cmdLogin_Click procedure: " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub cmdTest_Click()
+
+On Error GoTo Err_Handler
+
+    HideAppWindowIcon Me
+    
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    strProc = "cmdTest_Click"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+     
+End Sub
+
+Private Sub Detail_MouseMove(Button As Integer, Shift As Integer, X As Single, Y As Single)
+    Me.lblTest.FontUnderline = False
+End Sub
+
+Private Sub Form_Load()
+
+On Error GoTo Err_Handler
+
+    'shift bypass key unlocker
+    CheckCommand
+        
+    DoCmd.Hourglass True
+    Me.Painting = False
+    
+        ' Start the hidden form for monitoring connection
+'    DoCmd.OpenForm "frmConnectionMonitor", , , , , acHidden
+    ' Display initial ping message
+'    Me.lblPing.Caption = "Ping: Checking..."
+    
+    If intAccessLevel = 3 Then
+        'option to hide or show app window
+        Dim LResponse As Integer
+        LResponse = MsgBox("Hide app window?", vbYesNo, "Continue")
+        If LResponse = vbYes Then
+            ' hide
+'            HideRibbon
+'            HideNavigationPane
+'            HideAppWindow Me
+            DoCmd.RunCommand acCmdAppMaximize 'maximize app window
+        Else
+            ' for debugging
+            SetAccessWindow (SW_SHOW)
+            ShowNavigationPane
+            ShowRibbon
+            Me.btnDesign.Visible = True
+        End If
+    Else
+        'hide
+'        HideRibbon
+'        HideNavigationPane
+        
+        'HideAppWindow Me ' hide appwindow only
+'        HideAppWindowIcon Me ' hide appwindow and taskbar icon
+    End If
+    
+    Me.cmd1.Enabled = False
+    Me.cmd2.Enabled = False
+    
+    'check connection to sql server
+    If mdlConnect.ConnectionStatus = True Then
+        Me.lblConnectionStatus.Visible = True
+        Me.lblConnectionStatus.ForeColor = RGB(71, 146, 108)
+        Me.lblConnectionStatus.Caption = "l"
+    Else
+        Me.lblConnectionStatus.Visible = True
+        Me.lblConnectionStatus.ForeColor = vbRed
+        Me.lblConnectionStatus.Caption = "l"
+    End If
+    
+    Me.txtUsername = "christian"
+    Me.txtPassword = "abc123"
+    
+    DoCmd.Restore
+    
+    Me.Painting = True
+    DoCmd.Hourglass False
+    
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    strProc = "Form_Load"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+
+    Form.InsideHeight = 5000
+    Form.InsideWidth = 10000
+
+    'Forms!frmStart.ShortcutMenu = False 'disable right click shortcut menu
+       
+    'Custom Right-Click Menu
+    Dim CustomMenu As Object
+    Dim NewButton As Object
+
+    On Error Resume Next
+    CommandBars("Basic Menu").Delete
+    
+    Set CustomMenu = CommandBars.Add("Basic Menu", 5, False, True)
+        CustomMenu.Controls.Add 1, 21, , , True ' 21=cut
+        CustomMenu.Controls.Add 1, 19, , , True ' 19=copy
+        CustomMenu.Controls.Add 1, 22, , , True ' 22=paste
+'        CustomMenu.Controls.Add 1, 2952, , , True 'design view
+    
+'    Set NewButton = CustomMenu.Controls.Add(1)
+'        NewButton.BeginGroup = True ' add line break
+'        NewButton.Caption = "Custom DesignView"
+'        NewButton.OnAction = "CustomDesignView"
+        
+    
+    'print=15948, printToPDF=12499, Form View=502, La&yout View=13157, &Design View=2952
+  
+End Sub
+
+Private Sub Form_Timer()
+
+'    Me.lblConnectionStatus.Caption = "Trying to Connect..."
+'    Call testcon
+    
+End Sub
+
+Private Sub testcon()
+
+Dim Test1 As Boolean
+    
+    Test1 = ConnectionStatus
+    
+        If Test1 = True Then
+            Me.lblConnectionStatus.Visible = True
+            Me.lblConnectionStatus.ForeColor = RGB(71, 146, 108)
+            Me.lblConnectionStatus.Caption = "Online"
+        Else
+            Me.lblConnectionStatus.Visible = True
+            Me.lblConnectionStatus.ForeColor = vbRed
+            Me.lblConnectionStatus.Caption = "Offline"
+        End If
+
+
+End Sub
+
+Private Sub FormHeader_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+
+On Error GoTo Err_Handler
+ 
+    X = ReleaseCapture()
+    X = SendMessage(Me.hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0)
+    
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "FormHeader_MouseDown"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+
+End Sub
+
+Private Sub lblTest_Click()
+    DoCmd.OpenForm "frmStartForgotPass"
+End Sub
+
+Private Sub lblTest_MouseMove(Button As Integer, Shift As Integer, X As Single, Y As Single)
+    Me.lblTest.FontUnderline = True
+End Sub
+
+Private Sub txtPassword_Click()
+    Me.lblPassword.Visible = False
+End Sub
+
+Private Sub txtPassword_GotFocus()
+    Me.lblPassword.Visible = False
+End Sub
+
+Private Sub txtUsername_AfterUpdate()
+
+On Error GoTo Err_Handler
+   
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    MsgBox "Error " & Err.Number & " in txtUsername_AfterUpdate procedure: " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub txtUsername_Click()
+    Me.lblUsername.Visible = False
+End Sub
+
+Private Sub txtUsername_GotFocus()
+    Me.lblUsername.Visible = False
+End Sub

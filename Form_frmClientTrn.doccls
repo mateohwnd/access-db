@@ -1,0 +1,139 @@
+﻿Option Compare Database
+
+Private Sub btnAdd_Click()
+
+Dim TrCount As Integer
+Dim strwhere As String
+Dim qdef As QueryDef
+Dim trnC As String
+Dim sql As String
+
+    If IsNull(Me.cboClientCode) Then
+        MsgBox "Pick a client name first", vbCritical, "Error"
+        Me.cboClientCode.SetFocus
+    Else
+        strwhere = "[Client_Code_ID] = " & Me.cboClientCode 'combobox value
+        strwhere = strwhere & " and [trn_Date] = #" & Date & "#" 'date field
+        'strWhere = strWhere & " and [Transaction_Code] = 'O220510234770'" 'variable field
+        TrCount = DCount("*", "tbltransactions", strwhere)
+        'Debug.Print TrCount
+        
+        If TrCount > 0 Then
+            MsgBox "Only 1 transaction per client can be created per day.", vbCritical, "Error"
+        Else
+            sql = "PARAMETERS clientCodeID LONG, trnDate DATETIME, trnCode TEXT(30), spd INT, ts DATETIME;" _
+                & " INSERT INTO tblTransactions (Client_Code_ID, trn_Date, trn_Code, ispaid, trn_timestamp)" _
+                & " VALUES ([clientCodeID],[trnDate],[trnCode],[spd],[ts])"
+                
+            trnC = DLookup("data", "tblhelperdata", "data_id=" & cboClientCode) 'get data name for generating trnCode
+            'Debug.Print trnC
+    
+            ' assign prepared statement to qdef object
+            Set qdef = CurrentDb.CreateQueryDef("", sql)
+            
+            ' bind named parameters
+            qdef!clientCodeID = Me.cboClientCode.value
+            qdef!trnDate = Date
+            qdef!trnCode = UCase(Left(trnC, 1) & Format(Now(), "yymmddhhnn") & Format(Int(Rnd() * 100), "00"))
+            qdef!spd = 0
+            qdef!ts = Now()
+    
+            ' execute action query
+            qdef.Execute dbFailOnError
+    
+            Set qdef = Nothing
+            lstTrn.Requery
+        End If
+    End If
+End Sub
+
+Private Sub btnEdit_Click()
+    Call ListTempVars
+End Sub
+
+Private Sub btnOpen_Click()
+    DoCmd.OpenForm "frmTrn"
+End Sub
+
+Private Sub cboClientCode_Change()
+    'MsgBox Forms!frmclienttrn.lstTrn.Value
+    Forms![frmClientTrn].lstTrn.Requery
+'    Me.Text11 = Me.cboClientCode.Column(1)
+'    Me.Text13 = Me.cboClientCode.Column(0)
+    
+End Sub
+
+Private Sub cboClientCode_DblClick(Cancel As Integer)
+    TempVars!tmpDataTypeID = 8
+    DoCmd.OpenForm "frmhelperdataadd" ', , , "data_type_id=8"
+'    Forms![frmhelperdataadd].txtDataTypeID.DefaultValue = 8
+End Sub
+
+Private Sub cboClientCode_KeyPress(KeyAscii As Integer)
+    Select Case KeyAscii
+        'Case 48 To 57
+        ' numeric character, do nothing
+        'Case 8
+        ' - character
+        'Case 65 To 90
+        ' uppercase A-Z
+        'Case 97 To 122
+        ' lowercase a-z
+        'Case 45
+        ' backspace, do nothing
+        Case Else
+        ' suppress character entered
+        KeyAscii = 0
+        Me.cboClientCode.Dropdown
+    End Select
+    
+'  Const ASCII_LOWER_A = 97
+'  Const ASCII_LOWER_Z = 122
+'  Const UPPER_MODIFIER = -32
+'
+'  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+'    KeyAscii = KeyAscii + UPPER_MODIFIER
+'  End If
+End Sub
+
+Private Sub Form_Close()
+    If IsOpen("frmClientTrnDetails") Then
+        DoCmd.Close acForm, "frmClientTrnDetails"
+    Else
+        'DoCmd.OpenForm "frmClientTrnDetails"
+    End If
+
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+    Dim tmpDataTypeID As TempVar
+    
+    TempVars!tmpDataTypeID = 8
+    'Me.Text15 = TempVars!tmpDataTypeID
+    
+    Form.InsideHeight = 4500
+    Form.InsideWidth = 4700
+    
+End Sub
+
+Private Sub lstTrn_Click()
+    'Me.Text9 = Me.lstTrn.Column(0)
+End Sub
+
+Private Sub lstTrn_DblClick(Cancel As Integer)
+    Dim trnID As TempVar
+    Dim trnCode As TempVar
+    Dim clientID As TempVar
+    Dim clientCode As TempVar
+        
+    TempVars!trnID = Me.lstTrn.Column(0)
+    TempVars!trnCode = Me.lstTrn.Column(3)
+    TempVars!clientID = Me.cboClientCode.Column(0)
+    TempVars!clientCode = Me.cboClientCode.Column(1)
+    
+'    If IsOpen("frmClientTrnDetails") Then
+'        DoCmd.Close acForm, "frmClientTrnDetails"
+'    Else
+        DoCmd.OpenForm "frmTrn"
+'    End If
+End Sub

@@ -1,0 +1,204 @@
+﻿Option Compare Database
+
+Private Sub Form_Load()
+    ' Auto-generate batch number when form loads
+    Me.txtBatchNumber = "BATCH-" & Format(Date, "yyyymmdd") & "-" & Format(Time(), "hhnnss")
+    Me.dtpDateReceived = Date
+End Sub
+
+Private Sub cmdAddInventory_Click()
+    ' Validate inputs
+    If IsNull(Me.txtBatchNumber) Or IsNull(Me.cboInsuranceType) Or _
+       IsNull(Me.txtStartCOC) Or IsNull(Me.txtEndCOC) Then
+        MsgBox "Please fill in all required fields", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Calculate total COCs
+    Dim startCOC As String, endCOC As String
+    Dim prefix As String, numericStart As String, numericEnd As String
+    Dim startNum As Long, endNum As Long
+    Dim totalCOCs As Long
+    
+    startCOC = Me.txtStartCOC
+    endCOC = Me.txtEndCOC
+    
+    ' Extract numeric part from the COC numbers
+    Dim i As Integer, foundDigit As Boolean
+    prefix = ""
+    numericStart = ""
+    foundDigit = False
+    
+    ' Find where the numeric part starts in the first COC
+    For i = 1 To Len(startCOC)
+        If IsNumeric(Mid(startCOC, i, 1)) Then
+            foundDigit = True
+            numericStart = Mid(startCOC, i)
+            prefix = Left(startCOC, i - 1)
+            Exit For
+        End If
+    Next i
+    
+    ' Find numeric part of the end COC
+    foundDigit = False
+    For i = 1 To Len(endCOC)
+        If IsNumeric(Mid(endCOC, i, 1)) Then
+            foundDigit = True
+            numericEnd = Mid(endCOC, i)
+            Exit For
+        End If
+    Next i
+    
+    ' Validate the extracted numeric parts
+    If numericStart = "" Or numericEnd = "" Then
+        MsgBox "COC numbers must contain numeric portions", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Convert to numbers for comparison
+    startNum = CLng(numericStart)
+    endNum = CLng(numericEnd)
+    
+    If startNum > endNum Then
+        MsgBox "Start COC must be less than End COC", vbExclamation
+        Exit Sub
+    End If
+    
+    totalCOCs = endNum - startNum + 1
+    
+    ' Set up ADO objects
+    Dim ADOConn As New ADODB.Connection
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    Dim config As Object
+    Dim connString As String
+    Dim configPath As String
+    
+    On Error GoTo ErrorHandler
+    
+    ' Get connection string from config
+    configPath = CurrentProject.path & "\config.txt"
+    Set config = ReadConfig(configPath)
+    
+    If config.Exists("DRIVER") Then
+        connString = "Driver={" & config("DRIVER") & "};" & _
+                     "Server=" & config("SERVER") & ";" & _
+                     "Database=" & config("DATABASE") & ";" & _
+                     "User=" & config("USER") & ";" & _
+                     "Password=" & config("PASSWORD") & ";" & _
+                     "Option=" & config("OPTION") & ";"
+        
+        ADOConn.ConnectionString = connString
+        ADOConn.Open
+        
+        ' Begin transaction
+        ADOConn.BeginTrans
+        
+        ' STEP 1: Insert into tbl_coc_inventory first
+        Set cmd = New ADODB.Command
+        Set cmd.ActiveConnection = ADOConn
+        cmd.CommandType = adCmdText
+        
+        ' Use parameterized query for inventory table
+        cmd.CommandText = "INSERT INTO tbl_coc_inventory " & _
+                         "(batch_number, insurance_type, start_coc, end_coc, " & _
+                         "date_received, received_from, total_cocs, remaining_cocs, status) " & _
+                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        
+        ' Add parameters for inventory table
+        cmd.Parameters.Append cmd.CreateParameter("batchNumber", adVarChar, adParamInput, 30, Me.txtBatchNumber)
+        cmd.Parameters.Append cmd.CreateParameter("insuranceType", adVarChar, adParamInput, 20, Me.cboInsuranceType)
+        cmd.Parameters.Append cmd.CreateParameter("startCOC", adVarChar, adParamInput, 20, startCOC)
+        cmd.Parameters.Append cmd.CreateParameter("endCOC", adVarChar, adParamInput, 20, endCOC)
+        cmd.Parameters.Append cmd.CreateParameter("dateReceived", adDate, adParamInput, , Me.dtpDateReceived)
+        cmd.Parameters.Append cmd.CreateParameter("receivedFrom", adVarChar, adParamInput, 100, Me.txtReceivedFrom)
+        cmd.Parameters.Append cmd.CreateParameter("totalCOCs", adInteger, adParamInput, , totalCOCs)
+        cmd.Parameters.Append cmd.CreateParameter("remainingCOCs", adInteger, adParamInput, , totalCOCs)
+        cmd.Parameters.Append cmd.CreateParameter("status", adVarChar, adParamInput, 20, "Active")
+        
+        ' Execute the insert for inventory
+        cmd.Execute
+        
+        ' STEP 2: Get the last inserted ID
+        Set cmd = New ADODB.Command
+        Set cmd.ActiveConnection = ADOConn
+        cmd.CommandText = "SELECT LAST_INSERT_ID() as NewID"
+        Set rs = cmd.Execute
+        
+        Dim inventoryID As Long
+        inventoryID = rs("NewID").value
+        rs.Close
+        
+        ' STEP 3: Insert records into tbl_coc_details
+        Set cmd = New ADODB.Command
+        Set cmd.ActiveConnection = ADOConn
+        cmd.CommandType = adCmdText
+        cmd.CommandText = "INSERT INTO tbl_coc_details (inventory_id, coc_number, status) VALUES (?, ?, ?)"
+        
+        ' Create parameters for details table
+        cmd.Parameters.Append cmd.CreateParameter("inventoryID", adInteger, adParamInput)
+        cmd.Parameters.Append cmd.CreateParameter("cocNumber", adVarChar, adParamInput, 20)
+        cmd.Parameters.Append cmd.CreateParameter("status", adVarChar, adParamInput, 20)
+        
+        ' Insert records in batches
+        Const BATCH_SIZE As Integer = 50
+        Dim counter As Integer
+        counter = 0
+        
+        ' Get the length of the numeric part for proper formatting
+        Dim numLength As Integer
+        numLength = Len(numericStart)
+        
+        For i = startNum To endNum
+            Dim cocNumber As String
+            ' Format the number with leading zeros to match original format
+            cocNumber = prefix & Format(i, String(numLength, "0"))
+            
+            cmd.Parameters(0).value = inventoryID
+            cmd.Parameters(1).value = cocNumber
+            cmd.Parameters(2).value = "Available"
+            
+            cmd.Execute
+            
+            counter = counter + 1
+            If counter >= BATCH_SIZE Then
+                ' Commit batch and start a new transaction
+                ADOConn.CommitTrans
+                ADOConn.BeginTrans
+                counter = 0
+            End If
+        Next i
+        
+        ' Commit any remaining records
+        If counter > 0 Then ADOConn.CommitTrans
+        
+        MsgBox "Added " & totalCOCs & " COCs to inventory", vbInformation
+        
+        ' Generate new batch number
+        Me.txtBatchNumber = "BATCH-" & Format(Date, "yyyymmdd") & "-" & Format(Time(), "hhnnss")
+        
+        ' Clear other fields
+        Me.txtStartCOC = ""
+        Me.txtEndCOC = ""
+        Me.txtReceivedFrom = ""
+    End If
+    
+ExitSub:
+    ' Clean up
+    If Not rs Is Nothing Then
+        If rs.State = adStateOpen Then rs.Close
+        Set rs = Nothing
+    End If
+    
+    Set cmd = Nothing
+    If ADOConn.State = adStateOpen Then ADOConn.Close
+    Set ADOConn = Nothing
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "Error " & Err.Number & ": " & Err.Description
+    ' Rollback transaction if active
+    On Error Resume Next
+    If ADOConn.State = adStateOpen Then ADOConn.RollbackTrans
+    Resume ExitSub
+End Sub

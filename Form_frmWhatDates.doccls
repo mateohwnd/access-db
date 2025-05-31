@@ -1,0 +1,49 @@
+﻿Option Compare Database
+
+Private Sub cmdPriview_Click()
+
+'On Error GoTo Err_Handler      'Remove the single quote from start of this line once you have it working.
+    'Purpose:       Filter a report to a date range.
+    'Documentation: http://allenbrowne.com/casu-08.html
+    'Note:          Filter uses "less than the next day" in case the field has a time component.
+    Dim strReport As String
+    Dim strDateField As String
+    Dim strwhere As String
+    Dim lngView As Long
+    Const strcJetDate = "\#mm\/dd\/yyyy\#"  'Do NOT change it to match your local settings.
+    
+    'DO set the values in the next 3 lines.
+    strReport = "rptDates"      'Put your report name in these quotes.
+    strDateField = "[DateAdded]" 'Put your field name in the square brackets in these quotes.
+    lngView = acViewPreview     'Use acViewNormal to print instead of preview.
+    
+    'Build the filter string.
+    If IsDate(Me.txtStartDate) Then
+        strwhere = "(" & strDateField & " >= " & Format(Me.txtStartDate, strcJetDate) & ")"
+    End If
+    If IsDate(Me.txtEndDate) Then
+        If strwhere <> vbNullString Then
+            strwhere = strwhere & " AND "
+        End If
+        strwhere = strwhere & "(" & strDateField & " < " & Format(Me.txtEndDate + 1, strcJetDate) & ")"
+    End If
+    
+    'Close the report if already open: otherwise it won't filter properly.
+    If CurrentProject.AllReports(strReport).IsLoaded Then
+        DoCmd.Close acReport, strReport
+    End If
+    
+    'Open the report.
+    'Debug.Print strWhere        'Remove the single quote from the start of this line for debugging purposes.
+    DoCmd.OpenReport strReport, lngView, , strwhere
+
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    If Err.Number <> 2501 Then
+        MsgBox "Error " & Err.Number & ": " & Err.Description, vbExclamation, "Cannot open report"
+    End If
+    Resume Exit_Handler
+
+End Sub

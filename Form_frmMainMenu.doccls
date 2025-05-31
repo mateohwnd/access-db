@@ -1,0 +1,790 @@
+﻿' frmMainMenu (Form Module)
+Option Compare Database
+'Option Explicit
+
+Private omv As Mv 'Mv is a custom class
+Dim lastSearch As String
+
+Private Sub Form_Timer()
+    'Debug.Print Me.Tag, lastSearch
+
+    If Me.Tag <> lastSearch Then
+        lastSearch = Me.Tag
+        Call PerformSearch(Me.Tag)
+        Me.lblStatus.Visible = False ' hide after search
+    End If
+
+    Me.TimerInterval = 0
+End Sub
+
+Private Sub txtInputBox_Change()
+    If Len(Me.txtInputBox.text) <> 0 Then
+        Me.btnReset.Visible = True
+    Else
+        Me.btnReset.Visible = False
+    End If
+
+    If Len(Me.txtInputBox.text) < 3 Then
+        Me.lstSearch.RowSource = ""
+        Me.lstSearch.Visible = False
+        Exit Sub
+    End If
+
+    ' Update Tag + force refresh if content changes
+    If Me.Tag <> Me.txtInputBox.text Then
+        Me.Tag = Me.txtInputBox.text
+        lastSearch = "" ' ?? Force it to re-search even for same value
+    End If
+
+    ' Optional: show a loading label or indicator here
+    Me.lblStatus.Visible = True
+
+    ' Restart timer (e.g., 750ms delay)
+    Me.TimerInterval = 750
+End Sub
+
+Private Sub PerformSearch(ByVal searchText As String)
+    On Error GoTo Err_Handler ' Add error handling
+    
+    Dim sql As String
+    Dim whereClause As String
+    Dim scoreExpr As String
+    Dim words() As String
+    Dim word As Variant
+    Dim rs As ADODB.Recordset ' Declare ADODB Recordset
+    Dim strRowSourceData As String ' String to build for listbox RowSource
+    Dim setHeight As Integer
+    Dim count As Integer
+
+    ' Ensure the ADODB connection is open
+    mdlConnection.OpenDBConnection
+    
+    ' Clear previous search results and hide listbox
+    Me.lstSearch.RowSource = ""
+    Me.lstSearch.Visible = False
+
+    ' If search text is too short, exit
+    If Len(Trim(searchText)) < 3 Then
+        Exit Sub
+    End If
+
+    words = Split(Trim(searchText))
+    scoreExpr = ""
+    whereClause = ""
+
+    For Each word In words
+        word = Trim(word)
+        If Len(word) > 0 Then
+            If Len(whereClause) > 0 Then whereClause = whereClause & " AND "
+            
+            ' --- Convert Access LIKE '*word*' to MySQL LIKE '%word%' ---
+            whereClause = whereClause & "(" & _
+                "platn LIKE '%" & Replace(word, "'", "''") & "%' OR " & _
+                "bltfn LIKE '%" & Replace(word, "'", "''") & "%' OR " & _
+                "cocn LIKE '%" & Replace(word, "'", "''") & "%' OR " & _
+                "nam LIKE '%" & Replace(word, "'", "''") & "%' OR " & _
+                "serchan LIKE '%" & Replace(word, "'", "''") & "%')"
+
+            ' --- Convert Access IIf to MySQL IF() ---
+            scoreExpr = scoreExpr & _
+                " + IF(nam LIKE '%" & Replace(word, "'", "''") & "%', 3, 0)" & _
+                " + IF(platn LIKE '%" & Replace(word, "'", "''") & "%', 2, 0)" & _
+                " + IF(bltfn LIKE '%" & Replace(word, "'", "''") & "%', 2, 0)" & _
+                " + IF(cocn LIKE '%" & Replace(word, "'", "''") & "%', 1, 0)" & _
+                " + IF(serchan LIKE '%" & Replace(word, "'", "''") & "%', 1, 0)"
+        End If
+    Next word
+
+    If Len(whereClause) = 0 Then
+        Exit Sub
+    End If
+
+    ' Remove leading " + " in scoreExpr
+    If Left(scoreExpr, 3) = " + " Then scoreExpr = Mid(scoreExpr, 4)
+
+    ' --- Construct MySQL-compatible SQL ---
+    ' Note: MySQL uses LIMIT instead of TOP
+    sql = "SELECT mvid, platn, bltfn, cocn, serchan, nam, (" & scoreExpr & ") AS MatchScore " & _
+          "FROM masterlist WHERE " & whereClause & " " & _
+          "ORDER BY (" & scoreExpr & ") DESC, datemodified DESC " & _
+          "LIMIT 20" ' Use LIMIT 20 for MySQL
+
+    ' --- Execute the query using ADODB ---
+    Set rs = New ADODB.Recordset
+    Set rs = g_conn.Execute(sql) ' Use the global ADODB connection
+
+    ' --- Populate the ListBox from the ADODB Recordset ---
+    If Not rs.EOF Then
+        Do While Not rs.EOF
+            ' Build a comma-separated string for each row
+            ' Ensure the order matches your listbox ColumnCount and desired display
+            strRowSourceData = strRowSourceData & _
+                """" & rs!MVID & """," & _
+                """" & rs!PLATN & """," & _
+                """" & rs!BLTFN & """," & _
+                """" & rs!COCN & """," & _
+                """" & rs!SERCHAN & """," & _
+                """" & rs!NAM & """;"
+            rs.MoveNext
+        Loop
+        
+        'Debug.Print strRowSourceData
+        
+        ' And after the loop, strip the last semicolon
+        If Right(strRowSourceData, 1) = ";" Then
+            strRowSourceData = Left(strRowSourceData, Len(strRowSourceData) - 1)
+        End If
+        
+        Me.lstSearch.RowSource = strRowSourceData
+'        Me.lstSearch.RowSourceType = "Value List"
+        Me.lstSearch.Visible = True
+        
+        ' Adjust listbox height based on number of results
+        count = Me.lstSearch.ListCount
+        If count > 19 Then count = 19
+        setHeight = 310 ' Assuming this is twips per row for your listbox
+        Me.lstSearch.Height = count * setHeight
+    Else
+        Me.lstSearch.RowSource = "" ' No results
+        Me.lstSearch.Visible = False
+    End If
+
+    ' Clean up recordset object
+    If Not rs Is Nothing Then
+        If rs.State = adStateOpen Then rs.Close
+        Set rs = Nothing
+    End If
+    
+    Exit Sub ' Normal exit
+    
+Err_Handler:
+    ' Handle errors during search
+    If Not rs Is Nothing Then
+        If rs.State = adStateOpen Then rs.Close
+        Set rs = Nothing
+    End If
+    Me.lstSearch.RowSource = ""
+    Me.lstSearch.Visible = False
+    Call mdlErrorHandling.HandleError("frmMainMenu.PerformSearch", "Error performing search query.")
+    ' Do not Resume Next here, as it might lead to unexpected behavior.
+    ' Let the error handler decide if it should exit the sub or re-raise.
+End Sub
+
+Private Sub Form_Unload(Cancel As Integer)
+    DoCmd.OpenForm "frmStart"
+End Sub
+
+Private Sub btnReset_Click()
+    Me.txtInputBox.SetFocus
+    Me.txtInputBox = Null
+    Me.lstSearch.Visible = False
+    Me.btnReset.Visible = False
+    Me.Tag = ""
+    lastSearch = "" ' <- THIS resets it!
+    Call clearView
+    Call DisplayMvInfo
+End Sub
+
+Private Sub btnMinimize_Click()
+    DoCmd.Minimize
+End Sub
+
+Private Sub cmdAddUser_Click()
+    DoCmd.OpenForm "frmstartadduser"
+End Sub
+
+Private Sub cmdCashFlow_Click()
+    DoCmd.OpenForm "frmcf"
+End Sub
+
+Private Sub cmdLogout_Click()
+On Error GoTo Err_Handler
+
+' Close the session for this user and flag them as logged out.
+    Call CloseSession
+    Call LogMeOff(lngLoginID)
+    Me.lblVariable.FontWeight = Normal
+    Me.lblVariable.Caption = "Logged Out"
+    Me.txtInputBox = ""
+    Me.txtInputBox.Requery
+    MsgBox "Logged Out", vbInformation, ""
+    DoCmd.Close
+    DoCmd.OpenForm "frmStart"
+
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    MsgBox "Error " & Err.Number & " in cmdLogout_Click procedure: " & Err.Description
+    Resume Exit_Handler
+    
+End Sub
+
+Private Sub cmdMilesPrint_Click()
+    If IsNull(TempVars("mvf") = "") And IsNull(TempVars("plt") = "") And IsNull(TempVars("coc") = "") Then
+        MsgBox "No data in Memory", vbInformation, "Error"
+    Else
+        DoCmd.OpenReport "rptORMilestone"
+        DoCmd.OpenReport "rptCOCMilestone"
+        DoCmd.OpenReport "rptPolicyMilestone"
+        Me.txtInputBox.SetFocus
+    End If
+End Sub
+
+Private Sub cmdUserRecent_Click()
+    DoCmd.OpenForm "frmuserrecent"
+End Sub
+
+Private Sub FormHeader_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+On Error GoTo Err_Handler
+ 
+    X = ReleaseCapture()
+    X = SendMessage(Me.hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0)
+    
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "FormHeader_MouseDown"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+End Sub
+
+Private Sub imgUser_Click()
+    DoCmd.OpenForm "frmStartChangePass"
+End Sub
+
+Private Sub imgUser_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+On Error GoTo Err_Handler
+ 
+    X = ReleaseCapture()
+    X = SendMessage(Me.hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0)
+    
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "FormHeader_MouseDown"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+End Sub
+
+Private Sub lblVariable_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+On Error GoTo Err_Handler
+ 
+    X = ReleaseCapture()
+    X = SendMessage(Me.hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0)
+    
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "FormHeader_MouseDown"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+End Sub
+
+Private Sub lstSearch_Click()
+        TempVars!mvf = Me.lstSearch.Column(2)
+        TempVars!coc = Me.lstSearch.Column(3)
+        TempVars!plt = Me.lstSearch.Column(1)
+        
+        mvf = Len(TempVars!mvf)
+        plt = Len(TempVars!plt)
+        coc = Len(TempVars!coc)
+            
+        If mvf <> 0 Then
+            Me.txtInputBox = TempVars!mvf
+            
+            Call DisplayMvInfo
+            Exit Sub
+        End If
+        If coc <> 0 Then
+            Me.txtInputBox = TempVars!coc
+            
+            Call DisplayMvInfo
+            Exit Sub
+        End If
+        If plt <> 0 Then
+            Me.txtInputBox = TempVars!plt
+            
+            Call DisplayMvInfo
+            Exit Sub
+        End If
+End Sub
+
+Private Sub Edit_Record_Click()
+    On Error GoTo Err_Handler
+
+    Dim rs As ADODB.Recordset
+    Dim sql As String
+    Dim searchValue As String
+    Dim intTotalRecord As Integer
+
+    ' Validate input
+    If IsNull(Me.txtInputBox) Or Trim(Me.txtInputBox) = "" Then
+        Me.txtInputBox.BackColor = vbRed
+        Me.boxbg.BackColor = vbRed
+        MsgBox "Must enter plate, mvfile or COC", vbInformation, "Missing Input"
+        Me.txtInputBox.BackColor = vbWhite
+        Me.boxbg.BackColor = vbWhite
+        Me.txtInputBox = Null
+        Me.txtInputBox.SetFocus
+        Exit Sub
+    End If
+
+    ' Open connection if needed
+    Call mdlConnection.OpenDBConnection
+
+    ' Sanitize input
+    searchValue = Replace(Me.txtInputBox, "'", "''")
+
+    ' Build SQL to check if it matches any of the 3 fields
+    sql = "SELECT COUNT(*) AS Total FROM masterlist WHERE " & _
+          "PLATN = '" & searchValue & "' " & _
+          "OR BLTFN = '" & searchValue & "' " & _
+          "OR COCN = '" & searchValue & "'"
+
+    ' Execute query
+    Set rs = New ADODB.Recordset
+    rs.Open sql, g_conn, adOpenForwardOnly, adLockReadOnly
+
+    If Not rs.EOF Then
+        intTotalRecord = rs!Total
+    End If
+
+    rs.Close
+    Set rs = Nothing
+
+    ' Show vehicle info
+    Call DisplayMvInfo
+
+    ' Handle results
+    Select Case intTotalRecord
+        Case 0
+            MsgBox "No Record!", vbInformation, "Not Found"
+        Case 1
+            Me.btnReset.Visible = True
+            DoCmd.OpenForm "frmData", , , , acFormEdit, , "EditRecord"
+            Forms!frmData.AllowAdditions = False
+        Case Else
+            Me.btnReset.Visible = True
+            MsgBox intTotalRecord & " records found", vbInformation, "Multiple Records"
+            DoCmd.OpenForm "frmContinuous"
+    End Select
+
+    Exit Sub
+
+Err_Handler:
+    Call mdlErrorHandling.HandleError("Edit_Record_Click", "Error checking record count for input: " & Me.txtInputBox, sql)
+    Me.lstSearch.RowSource = ""
+End Sub
+
+Private Sub Add_Record_Click()
+    On Error GoTo Err_Handler
+
+    Dim rs As ADODB.Recordset
+    Dim sql As String
+    Dim searchValue As String
+    Dim intTotalRecord As Integer
+
+    ' Validate input
+    If IsNull(Me.txtInputBox) Or Trim(Me.txtInputBox) = "" Then
+        Me.txtInputBox.BackColor = vbRed
+        Me.boxbg.BackColor = vbRed
+        MsgBox "Must enter plate, mvfile or coc", vbInformation, "Missing Input"
+        Me.txtInputBox.BackColor = vbWhite
+        Me.boxbg.BackColor = vbWhite
+        Me.txtInputBox = Null
+        Me.txtInputBox.SetFocus
+        Exit Sub
+    End If
+
+    ' Open connection
+    Call mdlConnection.OpenDBConnection
+
+    ' Escape single quotes
+    searchValue = Replace(Me.txtInputBox, "'", "''")
+
+    ' Query to check if record exists
+    sql = "SELECT COUNT(*) AS Total FROM masterlist WHERE " & _
+          "PLATN = '" & searchValue & "' OR " & _
+          "BLTFN = '" & searchValue & "' OR " & _
+          "COCN = '" & searchValue & "'"
+
+    ' Run ADO query
+    Set rs = New ADODB.Recordset
+    rs.Open sql, g_conn, adOpenForwardOnly, adLockReadOnly
+
+    If Not rs.EOF Then
+        intTotalRecord = rs!Total
+    End If
+
+    rs.Close
+    Set rs = Nothing
+
+    ' Show vehicle info
+    Call DisplayMvInfo
+
+    ' Record exists
+    If intTotalRecord > 0 Then
+        MsgBox "Record already exists!", vbInformation, "Duplicate"
+        Me.txtInputBox.SetFocus
+        Exit Sub
+    End If
+
+    ' Otherwise, open new form to add record
+    DoCmd.OpenForm "frmData", , , , acFormAdd, , "NewRecord"
+    Forms!frmData.NavigationButtons = False
+
+    Exit Sub
+
+Err_Handler:
+    Call mdlErrorHandling.HandleError("Add_Record_Click", "Error checking record existence: " & Me.txtInputBox, sql)
+End Sub
+
+Private Sub btn_coc_plate2_Click()
+    DoCmd.OpenReport "rptCOCPremiere", acViewPreview
+End Sub
+
+Private Sub btn_open_rptByPlate2_Click()
+    DoCmd.OpenReport "rptCOCMilestone", acViewPreview
+End Sub
+
+Private Sub btn_or_dwl_Click()
+    DoCmd.OpenReport "rptORdwl", acViewPreview
+End Sub
+
+Private Sub btn_policy_plate_2_Click()
+    DoCmd.OpenReport "rptPolicyPremiere", acViewPreview
+End Sub
+
+Private Sub btn_printPolicy_Click()
+    DoCmd.OpenReport "rptPolicyMilestone", acViewPreview
+End Sub
+
+Private Sub btnExit_Click()
+    DoCmd.Quit acQuitSaveAll
+End Sub
+
+Private Sub btnORPremiere_Click()
+    DoCmd.OpenReport "rptORPremiere", acViewPreview
+End Sub
+
+Private Sub btnQryName_Click()
+    DoCmd.OpenForm "frmnamesearch"
+End Sub
+
+Private Sub btnTRN_Click()
+    DoCmd.OpenForm "frmclienttrn"
+End Sub
+
+Private Sub cmdViewTrnDate_Click()
+    DoCmd.OpenForm "frmViewTrnDate"
+End Sub
+
+Private Sub Command23_Click()
+    DoCmd.OpenReport "rptORMilestone", acViewPreview
+End Sub
+
+Private Sub Form_Close()
+
+On Error GoTo Err_Handler
+
+    If strUserName <> "dev" Then 'do not call closeSession if dev is currentUser
+        If varUserName Then
+            Call CloseSession
+            Call LogMeOff(lngLoginID)
+'            Me.lblVariable.FontWeight = Normal
+'            Me.lblVariable.Caption = "Logged Out"
+'            Me.txtInputBox = ""
+        End If
+    End If
+    
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    MsgBox "Error " & Err.Number & " in Form_Close procedure: " & Err.Description
+    Resume Exit_Handler
+
+End Sub
+
+Private Sub txtCOC_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub txtMVFile_KeyPress(KeyAscii As Integer)
+    Select Case KeyAscii
+        Case 48 To 57
+        ' numeric character, do nothing
+        Case 8
+        ' - character
+        Case 65 To 90
+        ' uppercase A-Z
+        Case 97 To 122
+        ' lowercase a-z
+        Case 45
+        ' backspace, do nothing
+        Case Else
+        ' suppress character entered
+        KeyAscii = 0
+    End Select
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub txtPlate_KeyPress(KeyAscii As Integer)
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Private Sub List65_Click()
+    TempVars!mvf = Me.List65.Column(3)
+    TempVars!coc = Me.List65.Column(4)
+    TempVars!plt = Me.List65.Column(5)
+    
+    mvf = Len(TempVars!mvf)
+    plt = Len(TempVars!plt)
+    coc = Len(TempVars!coc)
+       
+    If mvf <> 0 Then
+        Me.txtInputBox = TempVars!mvf
+        
+        Call DisplayMvInfo
+        Exit Sub
+    End If
+    If coc <> 0 Then
+        Me.txtInputBox = TempVars!coc
+        
+        Call DisplayMvInfo
+        Exit Sub
+    End If
+    If plt <> 0 Then
+        Me.txtInputBox = TempVars!plt
+        
+        Call DisplayMvInfo
+        Exit Sub
+    End If
+End Sub
+
+Private Sub List65_DblClick(Cancel As Integer)
+    DoCmd.OpenForm "frmData"
+End Sub
+
+Private Sub List65_GotFocus()
+    Forms![frmMainMenu].List65.Requery
+End Sub
+
+Private Sub txtInputBox_KeyPress(KeyAscii As Integer)
+    
+  Const ASCII_LOWER_A = 97
+  Const ASCII_LOWER_Z = 122
+  Const UPPER_MODIFIER = -32
+
+  If KeyAscii >= ASCII_LOWER_A And KeyAscii <= ASCII_LOWER_Z Then
+    KeyAscii = KeyAscii + UPPER_MODIFIER
+  End If
+End Sub
+
+Public Sub DisplayMvInfo()
+
+    On Error GoTo Err_Handler
+
+    If Not IsNull(Me.txtInputBox) Then
+    
+        s = ""
+    
+        Call DisplaySelectedMv
+
+        If Not omv Is Nothing Then
+            Call DisplayDateCover
+        End If
+    End If
+
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    strProc = "DisplayDateCover"
+    LogErrors strProc, Err.Number, Err.Description
+    Resume Exit_Handler
+
+End Sub
+
+
+Private Sub DisplaySelectedMv()
+
+On Error GoTo Err_Handler
+    
+    Dim s As String
+
+    Me.txtSelected1.ForeColor = Color.LightGreen
+    
+    If MvDbAccess.MvExistsById(omv, Me.txtInputBox) Then
+        If omv.Customer <> "" Then s = omv.Customer & vbCrLf
+        If omv.PlateNumber <> "" Or Me.txtInputBox <> "-" Then s = s & "Plate: " & omv.PlateNumber & vbCrLf
+        If omv.MvFileNumber <> "" Then s = s & "MV File: " & omv.MvFileNumber & vbCrLf
+        If omv.cocNumber <> "" Then s = s & "COC: " & omv.cocNumber & vbCrLf
+        If omv.Name <> "" Then s = s & "Name: " & omv.Name & vbCrLf
+        If omv.Address <> "" Then s = s & "Address: " & omv.Address & vbCrLf
+        If omv.ChassisNumber <> "" Then s = s & "Chassis: " & Trim(omv.ChassisNumber) & vbCrLf
+        If omv.EngineNumber <> "" Then s = s & "Engine: " & Trim(omv.EngineNumber) & vbCrLf
+        If omv.BodyType <> "" Then s = s & "BodyType: " & Trim(omv.BodyType) & vbCrLf
+        If omv.amount <> 0 Then s = s & "Amount: " & Format(omv.amount, "#,#00.00")
+        
+        Me.txtSelected1 = s
+    End If
+    
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    strProc = "DisplaySelectedMv"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+End Sub
+
+Private Sub DisplayDateCover()
+
+On Error GoTo Err_Handler
+
+    Dim dateIssuedText As String
+    Dim coverText As String
+
+    If Year(omv.DateIssued) >= Year(Now) Then
+        Me.txtDateIssued.ForeColor = Color.LightGreen
+    Else
+        Me.txtDateIssued.ForeColor = Color.Red
+    End If
+    
+    If Year(omv.DateCoverStart) = Year(Now) And Year(omv.DateCoverEnd) >= Year(Now) Then
+        Me.txtDateCover.ForeColor = Color.LightGreen
+    Else
+        Me.txtDateCover.ForeColor = Color.Red
+    End If
+    
+    If omv.DateIssued <> #1/1/1900# Then
+        dateIssuedText = "Date Issued: " & vbCrLf & omv.DateIssued
+        Me.txtDateIssued = dateIssuedText
+    End If
+    
+    If omv.DateCoverStart <> #1/1/1900# Then
+        coverText = "Insurance Cover:" & vbCrLf & omv.DateCoverStart & " - " & omv.DateCoverEnd
+        Me.txtDateCover = coverText
+    End If
+
+    Me.txtInputBox.SetFocus
+    Me.lstSearch.Visible = False
+    
+Exit_Handler:
+    Exit Sub
+
+Err_Handler:
+    strProc = "DisplayDateCover"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+End Sub
+
+Private Sub clearView()
+    Me.txtSelected1 = ""
+    Me.txtDateIssued = ""
+    Me.txtDateCover = ""
+End Sub
+
+Private Sub Form_Load()
+    DoCmd.Hourglass True
+    Me.Painting = False
+    
+    ' Start the hidden form for monitoring connection
+'    DoCmd.OpenForm "frmConnectionMonitor" ', , , , , acHidden
+    ' Display initial ping message
+'    Me.lblPing.Caption = "Ping: Checking..."
+    
+    ' Initialize form but don't search yet
+    Me.lstSearch.Visible = False
+    Me.btnReset.Visible = False
+    Me.lblStatus.Visible = False
+    
+    Call LoadComboBoxCache
+    Call clearView 'clear view textboxes
+    
+'    Initialized = True
+    
+    Me.lblVariable.Caption = StrConv(GetUserName, vbProperCase)
+    Me.lblEncoderCode.Caption = GetEncoderCode
+    'Debug.Print GetUserName, GetAccessLevel
+    
+    'option to hide or show app window
+'    Dim LResponse As Integer
+'    LResponse = MsgBox("Hide app window?", vbYesNo, "Continue")
+'    If LResponse = vbYes Then
+'        ' hide
+'        HideRibbon
+'        HideNavigationPane
+'        HideAppWindow Me
+'    Else
+'        ' for debugging
+'        SetAccessWindow (SW_SHOW)
+'        ShowNavigationPane
+'        ShowRibbon
+'    End If
+    
+    ' Validate user access level
+    Dim ctlCurr As Control
+    If GetAccessLevel = 1 Then
+        'disable buttons with tag = 1
+        For Each ctlCurr In Me.Controls
+        If ctlCurr.Tag = "1" Then
+            ctlCurr.Visible = False
+        End If
+        Next ctlCurr
+    Else
+        'disable buttons with tag = 2
+        For Each ctlCurr In Me.Controls
+        If ctlCurr.Tag = "1" Then
+            ctlCurr.Visible = True
+        End If
+        Next ctlCurr
+    End If
+    
+    'Me.txtbox = TempVars!tInputBox
+'    DoCmd.Restore
+    Me.Painting = True
+    DoCmd.Hourglass False
+
+
+    Me.btnReset.Visible = False
+    
+    Call DisplayMvInfo
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+
+    If varUserName Then
+        Form.InsideHeight = 7600
+        Form.InsideWidth = 11000
+        
+        If CommandBars("ribbon").Height > 100 Then CommandBars.ExecuteMso "MinimizeRibbon"
+    Else
+        DoCmd.Close acForm, Me.Name
+    End If
+
+End Sub

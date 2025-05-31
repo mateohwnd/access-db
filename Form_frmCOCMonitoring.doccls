@@ -1,0 +1,210 @@
+﻿Option Compare Database
+' Create the form with this layout and VBA code
+
+' Form Design: frmCOCMonitoring
+' -----------------------------------------
+' This form should contain:
+' 1. Summary section at top
+' 2. Batch details subform below
+' 3. Filters and controls
+
+Private Sub Form_Load()
+    ' Refresh data when form opens
+    RefreshInventorySummary
+End Sub
+
+Private Sub cmdRefresh_Click()
+    ' Manual refresh
+    RefreshInventorySummary
+End Sub
+
+Private Sub cboInsuranceType_AfterUpdate()
+    ' Filter subform based on insurance type selection
+    If IsNull(Me.cboInsuranceType) Then
+        Me.subInventoryDetails.Form.Filter = ""
+    Else
+        ' Add quotes around the value and handle potential apostrophes in the value
+        Me.subInventoryDetails.Form.Filter = "insurance_type = '" & Replace(Me.cboInsuranceType, "'", "''") & "'"
+    End If
+    
+    Me.subInventoryDetails.Form.FilterOn = Not IsNull(Me.cboInsuranceType)
+    
+    ' Update low inventory warning based on selection
+    UpdateLowInventoryWarning
+End Sub
+
+Private Sub RefreshInventorySummary()
+    ' Clear existing data
+    Me.txtMCTotal = 0
+    Me.txtMCRemaining = 0
+    Me.txtMCUsed = 0
+    Me.txtMCPercent = "0.0%"
+    
+    Me.txtPrivateTotal = 0
+    Me.txtPrivateRemaining = 0
+    Me.txtPrivateUsed = 0
+    Me.txtPrivatePercent = "0.0%"
+    
+    Me.txtTruckTotal = 0
+    Me.txtTruckRemaining = 0
+    Me.txtTruckUsed = 0
+    Me.txtTruckPercent = "0.0%"
+    
+    Me.txtTrailerTotal = 0
+    Me.txtTrailerRemaining = 0
+    Me.txtTrailerUsed = 0
+    Me.txtTrailerPercent = "0.0%"
+    
+    ' Query database for summary
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
+    Set db = CurrentDb
+    
+    ' Get summary by insurance type
+    Dim sql As String
+    sql = "SELECT insurance_type, SUM(total_cocs) AS TotalCOCs, " & _
+          "SUM(remaining_cocs) AS RemainingCOCs " & _
+          "FROM tbl_coc_inventory " & _
+          "WHERE status = 'Active' " & _
+          "GROUP BY insurance_type"
+    
+    Set rs = db.OpenRecordset(sql)
+    
+    ' Update summary fields
+    Do Until rs.EOF
+        Select Case rs!insurance_type
+            Case "MC"
+                Me.txtMCTotal = rs!totalCOCs
+                Me.txtMCRemaining = rs!RemainingCOCs
+                Me.txtMCUsed = rs!totalCOCs - rs!RemainingCOCs
+                If rs!totalCOCs > 0 Then
+                    Me.txtMCPercent = Format(rs!RemainingCOCs / rs!totalCOCs, "0.0%")
+                End If
+                
+            Case "Private"
+                Me.txtPrivateTotal = rs!totalCOCs
+                Me.txtPrivateRemaining = rs!RemainingCOCs
+                Me.txtPrivateUsed = rs!totalCOCs - rs!RemainingCOCs
+                If rs!totalCOCs > 0 Then
+                    Me.txtPrivatePercent = Format(rs!RemainingCOCs / rs!totalCOCs, "0.0%")
+                End If
+                
+            Case "Truck"
+                Me.txtTruckTotal = rs!totalCOCs
+                Me.txtTruckRemaining = rs!RemainingCOCs
+                Me.txtTruckUsed = rs!totalCOCs - rs!RemainingCOCs
+                If rs!totalCOCs > 0 Then
+                    Me.txtTruckPercent = Format(rs!RemainingCOCs / rs!totalCOCs, "0.0%")
+                End If
+                
+            Case "Trailer"
+                Me.txtTrailerTotal = rs!totalCOCs
+                Me.txtTrailerRemaining = rs!RemainingCOCs
+                Me.txtTrailerUsed = rs!totalCOCs - rs!RemainingCOCs
+                If rs!totalCOCs > 0 Then
+                    Me.txtTrailerPercent = Format(rs!RemainingCOCs / rs!totalCOCs, "0.0%")
+                End If
+        End Select
+        rs.MoveNext
+    Loop
+    
+    rs.Close
+    
+    ' Calculate grand totals
+    Me.txtGrandTotal = Nz(Me.txtMCTotal, 0) + Nz(Me.txtPrivateTotal, 0) + Nz(Me.txtTruckTotal, 0) + Nz(Me.txtTrailerTotal, 0)
+    Me.txtGrandRemaining = Nz(Me.txtMCRemaining, 0) + Nz(Me.txtPrivateRemaining, 0) + Nz(Me.txtTruckRemaining, 0) + Nz(Me.txtTrailerRemaining, 0)
+    Me.txtGrandUsed = Nz(Me.txtMCUsed, 0) + Nz(Me.txtPrivateUsed, 0) + Nz(Me.txtTruckUsed, 0) + Nz(Me.txtTrailerUsed, 0)
+    
+    If Me.txtGrandTotal > 0 Then
+        Me.txtGrandPercent = Format(Me.txtGrandRemaining / Me.txtGrandTotal, "0.0%")
+    End If
+    
+    ' Refresh subform with batch details
+    Me.subInventoryDetails.Form.Requery
+    
+    ' Update low inventory warning
+    UpdateLowInventoryWarning
+End Sub
+
+Private Sub UpdateLowInventoryWarning()
+    ' Check for low inventory and display warnings
+    Dim lowThreshold As Integer
+    lowThreshold = 50  ' Set your threshold for low inventory warning
+    
+    ' Clear warning
+    Me.lblWarning.Visible = False
+    Me.lblWarning.Caption = ""
+    
+    ' Check which type to monitor
+    If IsNull(Me.cboInsuranceType) Then
+        ' Check all types
+        If Nz(Me.txtMCRemaining, 0) < lowThreshold Then
+            ShowWarning "MC", Me.txtMCRemaining
+        End If
+        
+        If Nz(Me.txtPrivateRemaining, 0) < lowThreshold Then
+            ShowWarning "Private", Me.txtPrivateRemaining
+        End If
+        
+        If Nz(Me.txtTruckRemaining, 0) < lowThreshold Then
+            ShowWarning "Truck", Me.txtTruckRemaining
+        End If
+        
+        If Nz(Me.txtTrailerRemaining, 0) < lowThreshold Then
+            ShowWarning "Trailer", Me.txtTrailerRemaining
+        End If
+    Else
+        ' Check only selected type
+        Dim remaining As Integer
+        Select Case Me.cboInsuranceType
+            Case "MC"
+                remaining = Nz(Me.txtMCRemaining, 0)
+            Case "Private"
+                remaining = Nz(Me.txtPrivateRemaining, 0)
+            Case "Truck"
+                remaining = Nz(Me.txtTruckRemaining, 0)
+            Case "Trailer"
+                remaining = Nz(Me.txtTrailerRemaining, 0)
+        End Select
+        
+        If remaining < lowThreshold Then
+            ShowWarning Me.cboInsuranceType, remaining
+        End If
+    End If
+End Sub
+
+Private Sub ShowWarning(typeName As String, remaining As Integer)
+    Me.lblWarning.Visible = True
+    
+    If Len(Me.lblWarning.Caption) > 0 Then
+        Me.lblWarning.Caption = Me.lblWarning.Caption & vbCrLf
+    End If
+    
+    Me.lblWarning.Caption = Me.lblWarning.Caption & "WARNING: Low inventory for " & typeName & " - only " & remaining & " remaining!"
+    Me.lblWarning.ForeColor = RGB(255, 0, 0)  ' Red color
+End Sub
+
+' Command to add new inventory batch
+Private Sub cmdAddNewBatch_Click()
+    DoCmd.OpenForm "frmCOCInventory", acNormal
+End Sub
+
+' Command to print inventory report
+Private Sub cmdPrintReport_Click()
+    If IsNull(Me.cboInsuranceType) Then
+        DoCmd.OpenReport "rptCOCInventory", acViewPreview
+    Else
+        DoCmd.OpenReport "rptCOCInventory", acViewPreview, , "insurance_type = '" & Me.cboInsuranceType & "'"
+    End If
+End Sub
+
+' Command to export inventory data
+Private Sub cmdExport_Click()
+    ' Export the inventory data to Excel
+    Dim strPath As String
+    strPath = CurrentProject.path & "\COC_Inventory_" & Format(Date, "yyyymmdd") & ".xlsx"
+    
+    DoCmd.OutputTo acOutputTable, "tbl_coc_inventory", acFormatXLSX, strPath, False
+    
+    MsgBox "Inventory data exported to:" & vbCrLf & strPath, vbInformation
+End Sub

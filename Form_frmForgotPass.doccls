@@ -1,0 +1,61 @@
+﻿Option Compare Database
+Option Explicit
+
+Private Sub btnExit_Click()
+    DoCmd.Close
+End Sub
+
+Private Sub btnSubmit_Click()
+    If IsValidEmail(Me.txtEmail) = False Then 'Public variable IsValidEmail function from mdlGlobal
+        MsgBox "Please enter a valid email address.", vbCritical, "Invalid Email"
+        Me.txtEmail = ""
+        Me.txtEmail.SetFocus
+    ElseIf IsNull(AccountPass = DLookup("[UserName]", "tblUsers", "Email='" & Me.txtEmail.value & "'")) Then
+        MsgBox "Please enter your registered email.", vbCritical, "Email does not exist"
+        Me.txtEmail = ""
+        Me.txtEmail.SetFocus
+    Else
+        AccountPass = DLookup("[PWD]", "tblUsers", "Email='" & Me.txtEmail.value & "'")
+        'Debug.Print AccountPass 'accountpass public variable defined at mdlGlobal
+        Call SendEmailUsingGmail
+    End If
+End Sub
+
+Private Sub Form_Load()
+    DoCmd.Restore
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+  
+    Dim CustomMenu As Object
+    Dim NewButton As Object
+
+    On Error Resume Next
+    CommandBars("Basic Menu").Delete
+    
+    Set CustomMenu = CommandBars.Add("Basic Menu", 5, False, True)
+        CustomMenu.Controls.Add 1, 21, , , True ' 21=cut
+        CustomMenu.Controls.Add 1, 19, , , True ' 19=copy
+        CustomMenu.Controls.Add 1, 22, , , True ' 22=paste
+        
+    Form.InsideHeight = 3000
+    Form.InsideWidth = 5000
+    
+End Sub
+
+Private Sub FormHeader_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+
+On Error GoTo Err_Handler
+ 
+    X = ReleaseCapture()
+    X = SendMessage(Me.hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0)
+    
+Exit_Handler:
+    Exit Sub
+    
+Err_Handler:
+    strProc = "FormHeader_MouseDown"
+    MsgBox "Error " & Err.Number & " in " & strProc & " procedure : " & Err.Description
+    Resume Exit_Handler
+    
+End Sub

@@ -1,0 +1,54 @@
+﻿Option Compare Database
+
+Private Sub btnInvoice_Click()
+    Me.Refresh
+    DoCmd.OpenReport "rptInvoice", acViewPreview
+End Sub
+
+Private Sub btnSave_Click()
+    Me.Refresh
+    DoCmd.Close
+End Sub
+
+Private Sub Form_Open(Cancel As Integer)
+    Form.InsideHeight = 6000
+    Form.InsideWidth = 6450
+'    Call totalRefresh
+End Sub
+
+Private Sub txtDeposit_LostFocus()
+'    If Me.txtDeposit = 0 Then
+'        'Me.txtDeposit.SetFocus
+'        Me.Undo
+'    Else
+        Me.Requery
+''        Call totalRefresh
+'    End If
+End Sub
+
+
+'Sub totalRefresh()
+'    Dim a As Integer
+'    Dim b As Integer
+'    a = Forms!frmtrn.txtDeposit
+'    a = Nz(a)
+'    b = Forms!frmtrn!frmTrnDetails.Form!txtAmountSum
+'    b = Nz(b)
+'    'MsgBox a
+'        If a = 0 Then
+'            Forms!frmtrn!frmTrnDetails.Form!txtDpst.Visible = False
+'            Forms!frmtrn!frmTrnDetails.Form!txtTotal.Visible = False
+'            Forms!frmtrn!frmTrnDetails.Form!lntotal.Visible = False
+'            Forms!frmtrn!frmTrnDetails.Form!lblDeposit.Visible = False
+'        Else
+'            Forms!frmtrn!frmTrnDetails.Form!txtDpst.Visible = True
+'            Forms!frmtrn!frmTrnDetails.Form!txtTotal.Visible = True
+'            Forms!frmtrn!frmTrnDetails.Form!lntotal.Visible = True
+'            Forms!frmtrn!frmTrnDetails.Form!lblDeposit.Visible = True
+'        End If
+'        If b = 0 Then
+'            Forms!frmtrn!frmTrnDetails.Form!lblTotalTrans.Visible = False
+'        Else
+'            Forms!frmtrn!frmTrnDetails.Form!lblTotalTrans.Visible = True
+'        End If
+'End Sub

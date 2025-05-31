@@ -1,0 +1,58 @@
+﻿Option Compare Database
+
+Private Sub cboCategory_DblClick(Cancel As Integer)
+    TempVars!tmpDataTypeID = 9
+    DoCmd.OpenForm "frmhelperdataadd"
+End Sub
+
+Private Sub cmdClose_Click()
+On Error GoTo Err_cmdEXIT_Click
+    
+    DoCmd.Close
+
+Exit_cmdEXIT_Click:
+    Exit Sub
+
+Err_cmdEXIT_Click:
+    MsgBox Err.Description
+    Resume Exit_cmdEXIT_Click
+End Sub
+
+Private Sub Form_BeforeInsert(Cancel As Integer)
+    Me.txtEncoderCode = GetEncoderCode
+End Sub
+
+Private Sub Form_BeforeUpdate(Cancel As Integer)
+   Dim strMsg As String
+   Dim iResponse As Integer
+
+   ' Specify the message to display.
+   strMsg = "Do you wish to save the changes?" & Chr(10)
+   strMsg = strMsg & "Click Yes to Save or No to Discard changes."
+
+   ' Display the message box.
+   iResponse = MsgBox(strMsg, vbQuestion + vbYesNo, "Save Record?")
+
+   ' Check the user's response.
+   If iResponse = vbNo Then
+       ' Undo the change.
+       DoCmd.RunCommand acCmdUndo
+       ' Cancel the update.
+       Cancel = True
+   End If
+   
+   Me.txtEncoderCode = GetEncoderCode
+End Sub
+
+Private Sub Form_Close()
+    Forms!frmcf.refreshScreen
+End Sub
+
+Private Sub Form_Load()
+    Select Case OpenArgs
+        Case "new"
+            Me.DataEntry = True
+        Case "edit"
+            Me.AllowEdits = True
+    End Select
+End Sub

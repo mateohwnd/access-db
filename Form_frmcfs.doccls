@@ -1,0 +1,22 @@
+﻿Option Compare Database
+
+Private Sub Amount_DblClick(Cancel As Integer)
+    DoCmd.OpenForm "frmcashflowdata", , , "CashFlowId =" & Me.txtcashflowid, , , "edit"
+End Sub
+
+Public Sub RefreshForm(dDate As Date)
+On Error GoTo HANDLE_ERROR:
+
+    Me.RecordSource = "select * from qrycashflow where cfdate=#" & dDate & "#;"
+    
+HANDLE_ERROR:
+    If Err.Number <> 0 Then
+        MsgBox "Error: " & Err.Number & vbCrLf & Err.Description, vbCritical, "ERROR-refreshform-sfrmcf"
+    End If
+    
+    Exit Sub
+End Sub
+
+Private Sub Form_Load()
+    Call RefreshForm(Date)
+End Sub

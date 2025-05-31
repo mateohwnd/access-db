@@ -1,0 +1,9 @@
+﻿
+' TechHelp Free Template Copyright (c) 2021 by Richard Rost and AccessLearningZone.com
+
+Option Compare Database
+Option Explicit
+
+Private Sub cbohelpertype_AfterUpdate()
+    Me.Requery
+End Sub
